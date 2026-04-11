@@ -19,7 +19,7 @@ header{background:linear-gradient(135deg,var(--acc),var(--prd));color:#fff;paddi
 header .hl{display:flex;align-items:center;gap:10px}
 header h1{font-size:16px;font-weight:700}
 header small{font-size:11px;opacity:.8;display:block;margin-top:1px}
-#hChg{font-size:12px;font-weight:600;background:rgba(255,255,255,.2);padding:5px 12px;border-radius:20px;cursor:pointer;border:none;color:#fff;display:none;align-items:center;gap:5px}
+#hChg{font-size:12px;font-weight:600;background:rgba(255,80,80,.25);border:1px solid rgba(255,255,255,.3);padding:5px 12px;border-radius:20px;cursor:pointer;color:#fff;display:none;align-items:center;gap:5px}
 /* Login */
 #loginScreen{display:flex;align-items:center;justify-content:center;min-height:85vh;padding:20px}
 .lcard{background:var(--sur);border-radius:16px;padding:28px 24px;width:100%;max-width:440px;box-shadow:0 8px 32px rgba(0,0,0,.12);text-align:center}
@@ -99,6 +99,14 @@ main{padding:14px;max-width:780px;margin:0 auto}
 .bg{background:var(--grn);color:#fff}.bg:hover{background:#3a9070}
 .bh{background:#fff;color:var(--prd);border:1.5px solid var(--pri)}.bh:hover{background:var(--prl)}
 .bs{padding:5px 10px;font-size:12px}
+/* PIN keypad */
+.kp-btn{padding:14px 8px;background:var(--bg);border:1.5px solid var(--bdr);border-radius:10px;font-size:20px;font-weight:700;color:var(--acc);cursor:pointer;transition:all .15s}
+.kp-btn:hover{background:var(--prl);border-color:var(--pri)}
+.kp-btn:active{transform:scale(.93);background:var(--pri);color:#fff}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--bdr);background:#fff;transition:all .2s}
+.pin-dot.filled{background:var(--acc);border-color:var(--acc)}
+.pin-dot.shake{animation:shake .4s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 /* Toast */
 #toast{position:fixed;bottom:20px;right:20px;background:var(--acc);color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.2);transform:translateY(80px);opacity:0;transition:all .3s;z-index:9999}
 #toast.show{transform:translateY(0);opacity:1}
@@ -130,7 +138,7 @@ main{padding:14px;max-width:780px;margin:0 auto}
       <small id="hSub" style="font-size:10px;opacity:.75;letter-spacing:.3px">Cổng Nhân Viên · Vũng Tàu</small>
     </div>
   </div>
-  <button id="hChg" onclick="showLogin()">
+  <button id="hChg" onclick="empLogout()">
     <span id="hName">—</span> <span style="opacity:.6">⇄ Đổi</span>
   </button>
 </header>
@@ -138,7 +146,7 @@ main{padding:14px;max-width:780px;margin:0 auto}
 <!-- LOGIN -->
 <div id="loginScreen">
   <div class="lcard">
-    <div class="licon">👋</div>
+    <img src="logo.png" alt="The Muse Candle" onerror="this.style.display='none'" style="height:52px;object-fit:contain;margin-bottom:14px" />
     <h2>Xin chào!</h2>
     <p>Chọn tên của bạn để vào trang cá nhân</p>
     <div class="nv-grid" id="nvGrid"></div>
@@ -148,6 +156,26 @@ main{padding:14px;max-width:780px;margin:0 auto}
     <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--bdr);font-size:11px;color:var(--mut)">
       💡 Dữ liệu dùng chung với app Admin trên cùng thiết bị này.
     </div>
+  </div>
+</div>
+
+<!-- PIN SCREEN -->
+<div id="pinScreen" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,#2d2018ee,#7a5c44ee);backdrop-filter:blur(6px);z-index:500;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:20px;padding:28px 24px;width:90%;max-width:340px;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,.3)">
+    <div id="pinAv" style="font-size:34px;margin-bottom:8px">🏪</div>
+    <h2 id="pinNm" style="font-size:17px;font-weight:800;color:var(--acc);margin-bottom:4px">—</h2>
+    <p style="font-size:12px;color:var(--mut);margin-bottom:16px">Nhập mã PIN để vào trang cá nhân</p>
+    <div id="pinDots" style="display:flex;justify-content:center;gap:10px;margin-bottom:18px"></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:210px;margin:0 auto 12px">
+      <button class="kp-btn" onclick="pinKey('1')">1</button><button class="kp-btn" onclick="pinKey('2')">2</button><button class="kp-btn" onclick="pinKey('3')">3</button>
+      <button class="kp-btn" onclick="pinKey('4')">4</button><button class="kp-btn" onclick="pinKey('5')">5</button><button class="kp-btn" onclick="pinKey('6')">6</button>
+      <button class="kp-btn" onclick="pinKey('7')">7</button><button class="kp-btn" onclick="pinKey('8')">8</button><button class="kp-btn" onclick="pinKey('9')">9</button>
+      <button class="kp-btn" onclick="pinClear()" style="font-size:10px;color:var(--mut)">XÓA HẾT</button>
+      <button class="kp-btn" onclick="pinKey('0')">0</button>
+      <button class="kp-btn" onclick="pinBack()" style="font-size:17px">⌫</button>
+    </div>
+    <div id="pinErr" style="font-size:12px;color:var(--red);display:none;margin-bottom:10px;font-weight:600">⚠️ PIN không đúng! Thử lại.</div>
+    <button onclick="showLogin()" style="font-size:12px;color:var(--mut);background:none;border:none;cursor:pointer;text-decoration:underline">← Chọn nhân viên khác</button>
   </div>
 </div>
 
@@ -279,10 +307,17 @@ document.getElementById('tabBar').addEventListener('click', function(e){
 });
 
 // ── LOGIN ────────────────────────────────────────────────────────────
+function empLogout(){
+  sessionStorage.removeItem('mc_emp_sess');
+  curNv=null;
+  document.getElementById('hChg').style.display='none';
+  showLogin();
+}
 function showLogin(){
   reloadData();
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('mainApp').style.display='none';
+  document.getElementById('pinScreen').style.display='none';
   var grid=document.getElementById('nvGrid');
   if(!employees.length){
     grid.innerHTML='';
@@ -303,16 +338,83 @@ function showLogin(){
   grid.innerHTML=html;
 }
 
+// ── AUTH ──────────────────────────────────────────────────────────────
+function encPw(pw){ return pw?btoa(unescape(encodeURIComponent(pw))):''; }
+var _pendingNvId='';
+var _pinBuf='';
+
 function selectNv(id){
+  reloadData();
+  var nv=employees.find(function(e){ return e.id===id; });
+  if(!nv) return;
+  // Check if PIN required
+  if(nv.pin && nv.pin.length>0){
+    _pendingNvId=id; _pinBuf='';
+    showPINScreen(nv);
+  } else {
+    enterApp(id);
+  }
+}
+
+function showPINScreen(nv){
+  document.getElementById('pinAv').textContent=nv.dd==='store'?'🏪':'🏭';
+  document.getElementById('pinNm').textContent=nv.ten;
+  document.getElementById('pinErr').style.display='none';
+  _pinBuf='';
+  renderPinDots(nv.pin?4:4);
+  document.getElementById('pinScreen').style.display='flex';
+}
+
+function renderPinDots(len){
+  var html='';
+  for(var i=0;i<len;i++) html+='<div class="pin-dot'+(i<_pinBuf.length?' filled':'')+'"></div>';
+  document.getElementById('pinDots').innerHTML=html;
+}
+
+function pinKey(d){
+  var nv=employees.find(function(e){ return e.id===_pendingNvId; });
+  if(!nv) return;
+  var maxLen=nv.pin?decPwLen(nv.pin):4;
+  if(_pinBuf.length>=6) return;
+  _pinBuf+=d;
+  renderPinDots(Math.max(4,_pinBuf.length));
+  // Auto-check when enough digits entered
+  if(_pinBuf.length>=4) setTimeout(checkPIN,120);
+}
+function pinBack(){ if(_pinBuf.length>0){ _pinBuf=_pinBuf.slice(0,-1); renderPinDots(4); } }
+function pinClear(){ _pinBuf=''; renderPinDots(4); document.getElementById('pinErr').style.display='none'; }
+
+function decPwLen(enc){ try{ return decodeURIComponent(escape(atob(enc))).length; }catch(e){ return 4; } }
+
+function checkPIN(){
+  var nv=employees.find(function(e){ return e.id===_pendingNvId; });
+  if(!nv||!nv.pin) return;
+  if(encPw(_pinBuf)===nv.pin){
+    document.getElementById('pinScreen').style.display='none';
+    enterApp(_pendingNvId);
+  } else {
+    document.getElementById('pinErr').style.display='block';
+    // shake animation
+    var dots=document.querySelectorAll('#pinDots .pin-dot');
+    dots.forEach(function(d){ d.classList.add('shake'); setTimeout(function(){ d.classList.remove('shake'); },400); });
+    _pinBuf='';
+    setTimeout(function(){ renderPinDots(4); },420);
+  }
+}
+
+function enterApp(id){
   reloadData();
   curNv=employees.find(function(e){ return e.id===id; });
   if(!curNv) return;
+  sessionStorage.setItem('mc_emp_sess', id);
   localStorage.setItem('mc_emp_last', id);
   document.getElementById('loginScreen').style.display='none';
+  document.getElementById('pinScreen').style.display='none';
   document.getElementById('mainApp').style.display='block';
   document.getElementById('hName').textContent=curNv.ten;
   document.getElementById('hSub').textContent=(curNv.dd==='store'?'🏪 Store':'🏭 Xưởng')+' · The Muse Candle';
   document.getElementById('hChg').style.display='inline-flex';
+  document.getElementById('hChg').innerHTML=curNv.ten+' &nbsp;🚪';
   renderRemind();
   renderSched();
   requestNotifPermission();
@@ -551,11 +653,20 @@ function renderLuong(){
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────
+// Check existing session first
+var sessId=sessionStorage.getItem('mc_emp_sess');
 var lastId=localStorage.getItem('mc_emp_last');
-if(lastId){
+if(sessId){
+  var sessNv=employees.find(function(e){ return e.id===sessId; });
+  if(sessNv){ enterApp(sessNv.id); }
+  else { sessionStorage.removeItem('mc_emp_sess'); showLogin(); }
+} else if(lastId){
+  // Auto-select but re-auth if has PIN
   var lastNv=employees.find(function(e){ return e.id===lastId; });
-  if(lastNv) selectNv(lastNv.id);
-  else showLogin();
+  if(lastNv){
+    if(lastNv.pin&&lastNv.pin.length>0){ _pendingNvId=lastNv.id; _pinBuf=''; showPINScreen(lastNv); }
+    else enterApp(lastNv.id);
+  } else showLogin();
 } else {
   showLogin();
 }

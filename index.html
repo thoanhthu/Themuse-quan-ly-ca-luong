@@ -206,7 +206,10 @@ tbody td{padding:10px 12px;vertical-align:middle}
       <small style="font-size:10px;opacity:.75;letter-spacing:.3px">Quản Lý Ca Làm & Lương · Vũng Tàu</small>
     </div>
   </div>
-  <a href="employee.html" target="_blank" style="font-size:12px;font-weight:600;background:rgba(255,255,255,.18);padding:6px 13px;border-radius:20px;color:#fff;text-decoration:none;white-space:nowrap">👤 Trang Nhân Viên ↗</a>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <a href="employee.html" target="_blank" style="font-size:12px;font-weight:600;background:rgba(255,255,255,.18);padding:6px 13px;border-radius:20px;color:#fff;text-decoration:none;white-space:nowrap">👤 Trang Nhân Viên ↗</a>
+    <button id="adminLogoutBtn" onclick="adminLogout()" style="font-size:12px;font-weight:600;background:rgba(255,80,80,.25);border:1px solid rgba(255,255,255,.3);padding:6px 12px;border-radius:20px;color:#fff;cursor:pointer;white-space:nowrap;display:none">🚪 Đăng xuất</button>
+  </div>
 </header>
 
 <div id="driveBar">
@@ -271,6 +274,30 @@ tbody td{padding:10px 12px;vertical-align:middle}
       <div class="rbtns" style="margin-top:10px">
         <button class="btn bp bs" id="saveMultBtn">💾 Lưu Hệ Số</button>
         <button class="btn bh bs" id="resetMultBtn">↺ Đặt lại mặc định</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cài đặt mật khẩu -->
+  <div class="card">
+    <div class="ch">
+      <h2>🔐 Cài Đặt Mật Khẩu & Phân Quyền</h2>
+      <span style="font-size:11px;color:var(--mut)">Mật khẩu admin + PIN nhân viên</span>
+    </div>
+    <div class="cb">
+      <div class="g2">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--acc);margin-bottom:8px">🔑 Mật Khẩu Admin</div>
+          <div class="fg" style="margin-bottom:8px"><label>Mật khẩu mới</label><input type="password" id="newAdminPw" placeholder="Nhập mật khẩu mới..." autocomplete="new-password"/></div>
+          <div class="fg" style="margin-bottom:10px"><label>Xác nhận lại</label><input type="password" id="confirmAdminPw" placeholder="Nhập lại mật khẩu..." autocomplete="new-password"/></div>
+          <button class="btn bp bs" id="saveAdminPwBtn">💾 Lưu Mật Khẩu Admin</button>
+          <div style="margin-top:8px;font-size:11px;color:var(--mut)">Để trống = không yêu cầu mật khẩu khi đăng nhập</div>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--acc);margin-bottom:8px">📱 PIN Nhân Viên</div>
+          <div style="font-size:12px;color:var(--mut);margin-bottom:10px">Đặt PIN 4–6 số cho từng nhân viên tại tab <strong>Nhân Viên</strong>. Nhân viên dùng PIN này để đăng nhập trang cá nhân.</div>
+          <div id="pinStatusList" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -390,6 +417,15 @@ tbody td{padding:10px 12px;vertical-align:middle}
           <div class="fg"><label>Số Tài Khoản</label><input id="nvBankAcc" placeholder="VD: 1234567890" /></div>
           <div class="fg"><label>Tên Chủ Tài Khoản</label><input id="nvBankName" placeholder="VD: NGUYEN THI LAN" style="text-transform:uppercase" /></div>
         </div>
+      </div>
+      <!-- PIN nhân viên -->
+      <div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--bdr)">
+        <div style="font-size:12px;font-weight:700;color:var(--acc);margin-bottom:8px">📱 PIN ĐĂNG NHẬP TRANG NHÂN VIÊN</div>
+        <div class="g2">
+          <div class="fg"><label>PIN mới (4–6 số)</label><input type="password" id="nvPin" placeholder="VD: 1234" maxlength="6" inputmode="numeric" /></div>
+          <div class="fg"><label>Xác nhận PIN</label><input type="password" id="nvPinConfirm" placeholder="Nhập lại PIN" maxlength="6" inputmode="numeric" /></div>
+        </div>
+        <div style="margin-top:6px;font-size:11px;color:var(--mut)">Để trống = nhân viên này không cần PIN khi đăng nhập trang cá nhân</div>
       </div>
       <!-- Ca định sẵn riêng -->
       <div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--bdr)">
@@ -687,19 +723,27 @@ function saveNV() {
   var bank     = document.getElementById('nvBank').value;
   var bankAcc  = document.getElementById('nvBankAcc').value.trim();
   var bankName = document.getElementById('nvBankName').value.trim().toUpperCase();
+  var pinNew   = document.getElementById('nvPin').value.trim();
+  var pinConf  = document.getElementById('nvPinConfirm').value.trim();
   var eid      = document.getElementById('nvId').value;
   if (!ten) { toast('Vui lòng nhập họ tên!','err'); return; }
   if (isNaN(luong)||luong<=0) { toast('Vui lòng nhập lương/giờ hợp lệ!','err'); return; }
+  if (pinNew && pinNew!==pinConf) { toast('PIN xác nhận không khớp!','err'); return; }
+  if (pinNew && (pinNew.length<4||isNaN(pinNew))) { toast('PIN phải là 4–6 chữ số!','err'); return; }
+  // Determine final PIN: if new PIN entered → encode; if blank → keep existing; if editing and blank → clear
+  var finalPin='';
+  if (pinNew) { finalPin=encPw(pinNew); }
+  else if (eid) { var existNv=employees.find(function(e){ return e.id===eid; }); finalPin=existNv?existNv.pin||'':''; }
   if (eid) {
     for (var i=0;i<employees.length;i++) {
-      if (employees[i].id===eid) { employees[i]={id:eid,ten:ten,dd:dd,loai:loai,luong:luong,cv:cv,sdt:sdt,gc:gc,bank:bank,bankAcc:bankAcc,bankName:bankName,customPresets:JSON.parse(JSON.stringify(_nvPresets))}; break; }
+      if (employees[i].id===eid) { employees[i]={id:eid,ten:ten,dd:dd,loai:loai,luong:luong,cv:cv,sdt:sdt,gc:gc,bank:bank,bankAcc:bankAcc,bankName:bankName,pin:finalPin,customPresets:JSON.parse(JSON.stringify(_nvPresets))}; break; }
     }
     toast('✅ Đã cập nhật nhân viên!');
   } else {
-    employees.push({id:uid(),ten:ten,dd:dd,loai:loai,luong:luong,cv:cv,sdt:sdt,gc:gc,bank:bank,bankAcc:bankAcc,bankName:bankName,customPresets:JSON.parse(JSON.stringify(_nvPresets))});
+    employees.push({id:uid(),ten:ten,dd:dd,loai:loai,luong:luong,cv:cv,sdt:sdt,gc:gc,bank:bank,bankAcc:bankAcc,bankName:bankName,pin:finalPin,customPresets:JSON.parse(JSON.stringify(_nvPresets))});
     toast('✅ Đã thêm nhân viên!');
   }
-  saveAll(); clearNVForm(); renderNV();
+  saveAll(); clearNVForm(); renderNV(); renderPinStatusList();
 }
 function editNV(id) {
   var nv = employees.find(function(e){ return e.id===id; });
@@ -711,6 +755,8 @@ function editNV(id) {
   document.getElementById('nvBank').value=nv.bank||'';
   document.getElementById('nvBankAcc').value=nv.bankAcc||'';
   document.getElementById('nvBankName').value=nv.bankName||'';
+  document.getElementById('nvPin').value='';
+  document.getElementById('nvPinConfirm').value='';
   _nvPresets=nv.customPresets?JSON.parse(JSON.stringify(nv.customPresets)):[];
   renderNvPresetList();
   document.getElementById('nvTitle').textContent='✏️ Chỉnh Sửa Nhân Viên';
@@ -720,11 +766,11 @@ function deleteNV(id) {
   var nv = employees.find(function(e){ return e.id===id; });
   confirmDel('Xóa nhân viên "' + (nv?nv.ten:'') + '"?', function() {
     employees = employees.filter(function(e){ return e.id!==id; });
-    saveAll(); renderNV(); toast('Đã xóa nhân viên.','err');
+    saveAll(); renderNV(); renderPinStatusList(); toast('Đã xóa nhân viên.','err');
   });
 }
 function clearNVForm() {
-  ['nvTen','nvCv','nvSdt','nvGc','nvId','nvBankAcc','nvBankName'].forEach(function(id){ document.getElementById(id).value=''; });
+  ['nvTen','nvCv','nvSdt','nvGc','nvId','nvBankAcc','nvBankName','nvPin','nvPinConfirm'].forEach(function(id){ document.getElementById(id).value=''; });
   document.getElementById('nvBank').value='';
   document.getElementById('nvLuong').value='';
   document.getElementById('nvDd').value='store'; document.getElementById('nvLoai').value='full';
@@ -1344,6 +1390,70 @@ function downloadQR() {
   a.click();
 }
 
+// ── AUTH ADMIN ────────────────────────────────────────────────────────
+function encPw(pw){ return pw?btoa(unescape(encodeURIComponent(pw))):''; }
+function decPw(enc){ try{ return enc?decodeURIComponent(escape(atob(enc))):''; }catch(e){ return ''; } }
+
+function checkAdminAuth(){
+  var cfg=JSON.parse(localStorage.getItem('mc_admin')||'{}');
+  var hasPw=cfg.pw&&cfg.pw.length>0;
+  if(!hasPw){ enterAdmin(); return; } // no password set → direct entry
+  var sess=sessionStorage.getItem('mc_admin_sess');
+  if(sess==='1'){ enterAdmin(); return; }
+  showAdminLoginScreen();
+}
+function showAdminLoginScreen(){
+  var ov=document.getElementById('adminLoginOverlay');
+  ov.style.display='flex';
+  document.getElementById('adminPwInput').focus();
+}
+function enterAdmin(){
+  sessionStorage.setItem('mc_admin_sess','1');
+  document.getElementById('adminLoginOverlay').style.display='none';
+  document.getElementById('adminLogoutBtn').style.display='inline-flex';
+}
+function adminLogout(){
+  sessionStorage.removeItem('mc_admin_sess');
+  document.getElementById('adminLogoutBtn').style.display='none';
+  showAdminLoginScreen();
+}
+document.getElementById('adminLoginBtn').addEventListener('click',function(){
+  var pw=document.getElementById('adminPwInput').value;
+  var cfg=JSON.parse(localStorage.getItem('mc_admin')||'{}');
+  var hasPw=cfg.pw&&cfg.pw.length>0;
+  if(!hasPw||encPw(pw)===cfg.pw){ enterAdmin(); }
+  else { document.getElementById('adminLoginErr').style.display='block'; document.getElementById('adminPwInput').select(); }
+});
+document.getElementById('adminPwInput').addEventListener('keydown',function(e){ if(e.key==='Enter') document.getElementById('adminLoginBtn').click(); });
+document.getElementById('adminPwInput').addEventListener('input',function(){ document.getElementById('adminLoginErr').style.display='none'; });
+
+document.getElementById('saveAdminPwBtn').addEventListener('click',function(){
+  var pw=document.getElementById('newAdminPw').value;
+  var confirm=document.getElementById('confirmAdminPw').value;
+  if(pw&&pw!==confirm){ toast('Mật khẩu xác nhận không khớp!','err'); return; }
+  if(pw&&pw.length<4){ toast('Mật khẩu phải có ít nhất 4 ký tự!','err'); return; }
+  var cfg=JSON.parse(localStorage.getItem('mc_admin')||'{}');
+  cfg.pw=encPw(pw);
+  localStorage.setItem('mc_admin',JSON.stringify(cfg));
+  document.getElementById('newAdminPw').value='';
+  document.getElementById('confirmAdminPw').value='';
+  toast(pw?'✅ Đã lưu mật khẩu admin!':'✅ Đã xóa mật khẩu admin (không yêu cầu đăng nhập).');
+});
+
+function renderPinStatusList(){
+  var cont=document.getElementById('pinStatusList'); if(!cont) return;
+  if(!employees.length){ cont.innerHTML='<span style="font-size:12px;color:var(--mut);font-style:italic">Chưa có nhân viên</span>'; return; }
+  var html='';
+  for(var i=0;i<employees.length;i++){
+    var nv=employees[i];
+    var hasPin=nv.pin&&nv.pin.length>0;
+    html+='<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:16px;font-size:12px;font-weight:600;'+(hasPin?'background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7':'background:#fff8e1;color:#9a6900;border:1px solid #ffe082')+'">'+
+      (hasPin?'🔒':'🔓')+' '+nv.ten+
+    '</span>';
+  }
+  cont.innerHTML=html;
+}
+
 // ── AVAILABILITY SUGGESTIONS (từ trang nhân viên) ────────────────────
 function renderAvailSuggestions() {
   var availData=JSON.parse(localStorage.getItem('mc_avail')||'{}');
@@ -1382,9 +1492,28 @@ function renderAvailSuggestions() {
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────
-function init() { renderNV(); renderDashboard(); renderNvPresetList(); }
+function init() { checkAdminAuth(); renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); }
 init();
 </script>
+
+<!-- ========= ADMIN LOGIN OVERLAY ========= -->
+<div id="adminLoginOverlay" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,#2d2018cc,#7a5c44cc);backdrop-filter:blur(6px);z-index:3000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:20px;padding:36px 32px;width:90%;max-width:420px;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,.3)">
+    <img id="loginLogo" src="logo.png" alt="The Muse Candle" onerror="this.style.display='none';document.getElementById('loginLogoFallback').style.display='block'" style="height:60px;object-fit:contain;margin-bottom:16px" />
+    <div id="loginLogoFallback" style="display:none;font-size:36px;margin-bottom:16px">🕯️</div>
+    <h2 style="color:#7a5c44;font-size:20px;font-weight:800;margin-bottom:4px">Đăng Nhập Quản Trị</h2>
+    <p style="font-size:12px;color:#8a7060;margin-bottom:24px">The Muse Candle — Hệ thống quản lý ca làm & lương</p>
+    <div style="position:relative;margin-bottom:14px">
+      <input id="adminPwInput" type="password" placeholder="🔑 Nhập mật khẩu admin..." autocomplete="current-password"
+        style="width:100%;padding:12px 16px;border:2px solid #e8ddd5;border-radius:10px;font-size:15px;font-family:inherit;outline:none;transition:border-color .2s;background:#faf8f6" />
+    </div>
+    <button id="adminLoginBtn" style="width:100%;padding:12px;background:linear-gradient(135deg,#c8956c,#a97550);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.5px">🔓 ĐĂNG NHẬP</button>
+    <div id="adminLoginErr" style="margin-top:10px;font-size:12px;color:#e05252;display:none;font-weight:600">⚠️ Mật khẩu không đúng! Thử lại.</div>
+    <div style="margin-top:18px;padding-top:14px;border-top:1px dashed #e8ddd5;font-size:11px;color:#8a7060">
+      Lần đầu sử dụng? Để trống mật khẩu và nhấn Đăng Nhập.
+    </div>
+  </div>
+</div>
 
 <!-- QR Modal -->
 <div class="ovl" id="qrModal">
