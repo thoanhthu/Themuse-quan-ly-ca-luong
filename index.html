@@ -1839,44 +1839,70 @@ function checkAdminAuth(){
 }
 function showAdminLoginScreen(){
   var ov=document.getElementById('adminLoginOverlay');
+  if (!ov) { console.warn('adminLoginOverlay not found'); return; }
   ov.style.display='flex';
-  document.getElementById('adminPwInput').focus();
+  var pwInput = document.getElementById('adminPwInput');
+  if (pwInput) {
+    pwInput.value=''; // Clear previous input
+    pwInput.focus();
+  }
+  // Clear error message
+  var errMsg = document.getElementById('adminLoginErr');
+  if (errMsg) errMsg.style.display='none';
 }
 function enterAdmin(){
   sessionStorage.setItem('mc_admin_sess','1');
-  document.getElementById('adminLoginOverlay').style.display='none';
-  document.getElementById('adminLogoutBtn').style.display='inline-flex';
+  var ov = document.getElementById('adminLoginOverlay');
+  if (ov) ov.style.display='none';
+  var logoutBtn = document.getElementById('adminLogoutBtn');
+  if (logoutBtn) logoutBtn.style.display='inline-flex';
 }
 function adminLogout(){
   sessionStorage.removeItem('mc_admin_sess');
   document.getElementById('adminLogoutBtn').style.display='none';
   showAdminLoginScreen();
 }
-document.getElementById('adminLoginBtn').addEventListener('click',function(){
-  var pw=document.getElementById('adminPwInput').value;
-  var cfg=JSON.parse(localStorage.getItem('mc_admin')||'{}');
-  var hasPw=cfg.pw&&cfg.pw.length>0;
-  if(!hasPw||encPw(pw)===cfg.pw){ enterAdmin(); }
-  else { document.getElementById('adminLoginErr').style.display='block'; document.getElementById('adminPwInput').select(); }
-});
-document.getElementById('adminPwInput').addEventListener('keydown',function(e){ if(e.key==='Enter') document.getElementById('adminLoginBtn').click(); });
-document.getElementById('adminPwInput').addEventListener('input',function(){ document.getElementById('adminLoginErr').style.display='none'; });
 
-document.getElementById('saveAdminPwBtn').addEventListener('click',function(){
-  var pw=document.getElementById('newAdminPw').value;
-  var confirm=document.getElementById('confirmAdminPw').value;
-  if(pw&&pw!==confirm){ toast('Mật khẩu xác nhận không khớp!','err'); return; }
-  if(pw&&pw.length<4){ toast('Mật khẩu phải có ít nhất 4 ký tự!','err'); return; }
-  var cfg=JSON.parse(localStorage.getItem('mc_admin')||'{}');
-  cfg.pw=encPw(pw);
-  localStorage.setItem('mc_admin',JSON.stringify(cfg));
-  if (typeof saveAllToSupabase === 'function') saveAllToSupabase();
-  document.getElementById('newAdminPw').value='';
-  document.getElementById('confirmAdminPw').value='';
-  toast(pw?'✅ Đã lưu mật khẩu admin!':'✅ Đã xóa mật khẩu admin (không yêu cầu đăng nhập).');
-});
-} catch(e) {
-  console.error('addEventListener init error:', e);
+// Setup admin login event listeners (moved to initApp for DOM readiness)
+function setupAdminListeners() {
+  try {
+    var loginBtn = document.getElementById('adminLoginBtn');
+    var pwInput = document.getElementById('adminPwInput');
+    var saveAdminPwBtn = document.getElementById('saveAdminPwBtn');
+    if (!loginBtn || !pwInput || !saveAdminPwBtn) {
+      console.warn('Admin login elements not found, retrying...');
+      return false;
+    }
+
+    loginBtn.addEventListener('click',function(){
+      var pw=pwInput.value;
+      var cfg=JSON.parse(localStorage.getItem('mc_admin')||'{}');
+      var hasPw=cfg.pw&&cfg.pw.length>0;
+      if(!hasPw||encPw(pw)===cfg.pw){ enterAdmin(); }
+      else { document.getElementById('adminLoginErr').style.display='block'; pwInput.select(); }
+    });
+
+    pwInput.addEventListener('keydown',function(e){ if(e.key==='Enter') loginBtn.click(); });
+    pwInput.addEventListener('input',function(){ document.getElementById('adminLoginErr').style.display='none'; });
+
+    saveAdminPwBtn.addEventListener('click',function(){
+      var pw=document.getElementById('newAdminPw').value;
+      var confirm=document.getElementById('confirmAdminPw').value;
+      if(pw&&pw!==confirm){ toast('Mật khẩu xác nhận không khớp!','err'); return; }
+      if(pw&&pw.length<4){ toast('Mật khẩu phải có ít nhất 4 ký tự!','err'); return; }
+      var cfg=JSON.parse(localStorage.getItem('mc_admin')||'{}');
+      cfg.pw=encPw(pw);
+      localStorage.setItem('mc_admin',JSON.stringify(cfg));
+      if (typeof saveAllToSupabase === 'function') saveAllToSupabase();
+      document.getElementById('newAdminPw').value='';
+      document.getElementById('confirmAdminPw').value='';
+      toast(pw?'✅ Đã lưu mật khẩu admin!':'✅ Đã xóa mật khẩu admin (không yêu cầu đăng nhập).');
+    });
+    return true;
+  } catch(e) {
+    console.error('setupAdminListeners error:', e);
+    return false;
+  }
 }
 
 function renderPinStatusList(){
@@ -1934,6 +1960,9 @@ function renderAvailSuggestions() {
 // Defer UI init until DOM is fully ready (body elements are defined)
 function initApp() {
   try {
+    // Setup admin authentication listeners first
+    setupAdminListeners();
+    // Then initialize the app UI
     checkAdminAuth(); renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); loadEjConfig(); scheduleEjReminder();
   } catch(e) {
     console.error('App init error:', e);
