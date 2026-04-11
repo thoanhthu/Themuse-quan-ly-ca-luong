@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cổng Nhân Viên — The Muse Candle</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --pri:#c8956c;--prd:#a97550;--prl:#f5ede6;
+  --acc:#7a5c44;--acl:#f9f5f1;
+  --grn:#4caf85;--red:#e05252;--yel:#d4a017;--pur:#9c6bb5;
+  --bg:#faf8f6;--sur:#fff;--bdr:#e8ddd5;
+  --txt:#2d2018;--mut:#8a7060;
+  --shd:0 2px 12px rgba(0,0,0,.08);--r:10px;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;font-size:14px}
+header{background:linear-gradient(135deg,var(--acc),var(--prd));color:#fff;padding:13px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+header .hl{display:flex;align-items:center;gap:10px}
+header h1{font-size:16px;font-weight:700}
+header small{font-size:11px;opacity:.8;display:block;margin-top:1px}
+#hChg{font-size:12px;font-weight:600;background:rgba(255,255,255,.2);padding:5px 12px;border-radius:20px;cursor:pointer;border:none;color:#fff;display:none;align-items:center;gap:5px}
+/* Login */
+#loginScreen{display:flex;align-items:center;justify-content:center;min-height:85vh;padding:20px}
+.lcard{background:var(--sur);border-radius:16px;padding:28px 24px;width:100%;max-width:440px;box-shadow:0 8px 32px rgba(0,0,0,.12);text-align:center}
+.lcard .licon{font-size:44px;margin-bottom:14px}
+.lcard h2{font-size:20px;font-weight:800;color:var(--acc);margin-bottom:5px}
+.lcard p{font-size:13px;color:var(--mut);margin-bottom:22px}
+.nv-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;text-align:left}
+.nv-btn{padding:11px 12px;background:var(--prl);border:2px solid var(--bdr);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--acc);transition:all .2s;display:flex;align-items:center;gap:8px;width:100%}
+.nv-btn:hover{border-color:var(--pri);background:#fff;box-shadow:var(--shd)}
+.nv-btn .nb-sub{font-size:10px;color:var(--mut);font-weight:400;display:block;margin-top:2px}
+/* Main */
+#mainApp{display:none}
+.tabs{background:var(--sur);border-bottom:2px solid var(--bdr);padding:0 14px;display:flex;gap:0;overflow-x:auto}
+.tab-btn{padding:10px 13px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:600;color:var(--mut);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;white-space:nowrap}
+.tab-btn:hover{color:var(--pri)}.tab-btn.active{color:var(--prd);border-bottom-color:var(--pri)}
+main{padding:14px;max-width:780px;margin:0 auto}
+.pane{display:none}.pane.active{display:block}
+/* Cards */
+.card{background:var(--sur);border-radius:var(--r);box-shadow:var(--shd);border:1px solid var(--bdr);margin-bottom:14px;overflow:hidden}
+.ch{padding:11px 16px;border-bottom:1px solid var(--bdr);background:var(--prl);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.ch h2{font-size:13px;font-weight:700;color:var(--acc)}
+.cb{padding:16px}
+/* Remind */
+.rmcard{border-radius:var(--r);padding:14px 16px;margin-bottom:10px;border:2px solid}
+.rmcard.today{background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border-color:#a5d6a7}
+.rmcard.tmr{background:linear-gradient(135deg,#fff8f0,#fff3e0);border-color:#ffcc80}
+.rmcard.off{background:#ffebee;border-color:#ffcdd2}
+.rm-lbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.rm-shift{font-size:20px;font-weight:800;color:var(--acc)}
+.rm-sub{font-size:12px;color:var(--mut);margin-top:3px}
+/* Schedule rows */
+.wrow{display:grid;grid-template-columns:72px 1fr;border-bottom:1px solid var(--bdr);min-height:52px}
+.wrow:last-child{border-bottom:none}
+.wlabel{padding:8px 10px;display:flex;flex-direction:column;justify-content:center;background:var(--acl)}
+.wlabel .wln{font-size:10px;color:var(--mut);font-weight:700}
+.wlabel .wld{font-size:13px;font-weight:800;color:var(--acc)}
+.wlabel.tod{background:#f0fdf4}.wlabel.tod .wld{color:#16a34a}
+.wlabel.wnd{background:#fffbf5}.wlabel.wnd .wld{color:#b45309}
+.wshift{padding:8px 12px;display:flex;align-items:center}
+.sbadge{border-radius:8px;padding:7px 11px;font-size:13px;font-weight:600;flex:1}
+.sbadge.mor{background:#e3f2fd;color:#1565c0}
+.sbadge.aft{background:#fff8e1;color:#9a6900}
+.sbadge.eve{background:#f3e5f5;color:#6a1b9a}
+.sbadge.ful{background:#e8f5e9;color:#2e7d32}
+.sbadge.ovt{background:#fff3e0;color:#e65100}
+.sbadge.off{background:#ffebee;color:#c62828;font-weight:800}
+.sbadge.emp{background:#f5f5f5;color:#bbb;font-style:italic}
+.sb-sub{font-size:11px;display:block;margin-top:2px;opacity:.75;font-weight:400}
+.sb-mult{font-size:10px;background:rgba(255,255,255,.6);border-radius:4px;padding:1px 4px;margin-left:4px;font-weight:700}
+/* Avail form */
+.arow{display:grid;grid-template-columns:72px 1fr;border-bottom:1px solid var(--bdr);align-items:stretch}
+.arow:last-child{border-bottom:none}
+.alabel{padding:8px 10px;display:flex;flex-direction:column;justify-content:center;background:var(--acl)}
+.alabel .aln{font-size:10px;color:var(--mut);font-weight:700}
+.alabel .ald{font-size:13px;font-weight:800;color:var(--acc)}
+.alabel.wnd{background:#fffbf5}.alabel.wnd .ald{color:#b45309}
+.actrl{padding:8px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.atog{display:flex;background:var(--bg);border:1.5px solid var(--bdr);border-radius:8px;overflow:hidden;flex-shrink:0}
+.atog-btn{padding:5px 9px;border:none;background:none;cursor:pointer;font-size:11px;font-weight:600;color:var(--mut);transition:all .15s}
+.atog-btn.sel-on{background:var(--grn);color:#fff}
+.atog-btn.sel-off{background:var(--red);color:#fff}
+.atog-btn.sel-maybe{background:var(--yel);color:#fff}
+.anote{padding:5px 8px;border:1.5px solid var(--bdr);border-radius:7px;font-size:12px;flex:1;min-width:100px;max-width:200px;font-family:inherit;color:var(--txt);background:var(--bg)}
+.anote:focus{outline:none;border-color:var(--pri)}
+/* Payslip */
+.pscard{border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:12px;background:linear-gradient(135deg,var(--prl),#fff)}
+.pscard:first-child{border-color:var(--pri);box-shadow:var(--shd)}
+.psgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.psi .psiv{font-size:17px;font-weight:800;color:var(--prd)}
+.psi .psil{font-size:11px;color:var(--mut)}
+.pstot{display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1.5px dashed var(--bdr)}
+.pstot .ptl{font-size:12px;font-weight:600;color:var(--mut)}
+.pstot .pta{font-size:22px;font-weight:900;color:var(--prd)}
+/* Buttons */
+.btn{padding:8px 16px;border:none;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:5px;transition:all .2s}
+.bp{background:var(--pri);color:#fff}.bp:hover{background:var(--prd)}
+.bg{background:var(--grn);color:#fff}.bg:hover{background:#3a9070}
+.bh{background:#fff;color:var(--prd);border:1.5px solid var(--pri)}.bh:hover{background:var(--prl)}
+.bs{padding:5px 10px;font-size:12px}
+/* Toast */
+#toast{position:fixed;bottom:20px;right:20px;background:var(--acc);color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.2);transform:translateY(80px);opacity:0;transition:all .3s;z-index:9999}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.ok{background:var(--grn)}#toast.err{background:var(--red)}
+/* Week nav */
+.wnav{display:flex;align-items:center;gap:6px}
+.wnavlbl{font-size:12px;font-weight:700;color:var(--acc);min-width:130px;text-align:center}
+/* notify banner */
+.notif-bar{background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:10px 14px;font-size:12px;color:#2e7d32;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hl">
+    <svg width="38" height="38" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M36,4 C34.8,6.8 37.5,9 36.3,11.8 C35.1,14.6 37.8,16.8 36.6,19.6" stroke="#C9B89A" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="36" cy="21.8" r="1.9" fill="#C9B89A"/>
+      <path d="M25,14 C23.8,16.8 26.5,19 25.3,21.8 C24.1,24.6 26.8,26.8 25.6,29.6" stroke="#C9B89A" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="25" cy="31.8" r="1.9" fill="#C9B89A"/>
+      <path d="M14,24 C12.8,26.8 15.5,29 14.3,31.8 C13.1,34.6 15.8,36.8 14.6,39.6" stroke="#C9B89A" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="14" cy="41" r="1.6" fill="#C9B89A"/>
+    </svg>
+    <div>
+      <div style="display:flex;align-items:baseline;gap:1px;line-height:1.15">
+        <span style="font-family:Georgia,'Times New Roman',serif;font-style:italic;color:#C9B89A;font-size:16px">the</span>
+        <span style="font-family:'Segoe UI',Arial,sans-serif;font-weight:700;color:#fff;font-size:18px;letter-spacing:1.5px"> muse</span>
+      </div>
+      <small id="hSub" style="font-size:10px;opacity:.75;letter-spacing:.3px">Cổng Nhân Viên · Vũng Tàu</small>
+    </div>
+  </div>
+  <button id="hChg" onclick="showLogin()">
+    <span id="hName">—</span> <span style="opacity:.6">⇄ Đổi</span>
+  </button>
+</header>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="lcard">
+    <div class="licon">👋</div>
+    <h2>Xin chào!</h2>
+    <p>Chọn tên của bạn để vào trang cá nhân</p>
+    <div class="nv-grid" id="nvGrid"></div>
+    <div id="noNvMsg" style="display:none;padding:16px;font-size:13px;color:var(--mut);font-style:italic">
+      Chưa có dữ liệu nhân viên. Admin cần mở app quản lý trước.
+    </div>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--bdr);font-size:11px;color:var(--mut)">
+      💡 Dữ liệu dùng chung với app Admin trên cùng thiết bị này.
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp">
+  <!-- Remind bar -->
+  <div style="padding:12px 14px 0;max-width:780px;margin:0 auto" id="remindBar"></div>
+
+  <div class="tabs" id="tabBar">
+    <button class="tab-btn active" data-tab="lich">📅 Lịch Của Tôi</button>
+    <button class="tab-btn" data-tab="dangky">📝 Đăng Ký Lịch</button>
+    <button class="tab-btn" data-tab="luong">💰 Bảng Lương</button>
+  </div>
+
+  <main>
+
+    <!-- ── LỊCH CỦA TÔI ── -->
+    <div class="pane active" id="pane-lich">
+      <div class="card">
+        <div class="ch">
+          <h2>📅 Lịch Làm Việc</h2>
+          <div class="wnav">
+            <button class="btn bh bs" id="prevWk">◀</button>
+            <span class="wnavlbl" id="wkLbl">—</span>
+            <button class="btn bh bs" id="nextWk">▶</button>
+            <button class="btn bp bs" id="thisWk">Tuần này</button>
+          </div>
+        </div>
+        <div id="schedView"></div>
+        <div style="padding:8px 14px 12px;display:flex;gap:5px;flex-wrap:wrap;font-size:11px">
+          <span style="background:#e3f2fd;color:#1565c0;padding:1px 6px;border-radius:4px;font-weight:600">■ Sáng</span>
+          <span style="background:#fff8e1;color:#9a6900;padding:1px 6px;border-radius:4px;font-weight:600">■ Chiều</span>
+          <span style="background:#f3e5f5;color:#6a1b9a;padding:1px 6px;border-radius:4px;font-weight:600">■ Tối</span>
+          <span style="background:#e8f5e9;color:#2e7d32;padding:1px 6px;border-radius:4px;font-weight:600">■ Cả ngày</span>
+          <span style="background:#ffebee;color:#c62828;padding:1px 6px;border-radius:4px;font-weight:600">■ OFF</span>
+          <span style="background:#fff3e0;color:#e65100;padding:1px 6px;border-radius:4px;font-weight:600">■ Tăng ca</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ĐĂNG KÝ LỊCH ── -->
+    <div class="pane" id="pane-dangky">
+      <div class="card">
+        <div class="ch">
+          <h2>📝 Đăng Ký Lịch Tuần Tới</h2>
+          <span style="font-size:11px;color:var(--mut)" id="nextWkRange">—</span>
+        </div>
+        <div style="padding:10px 16px;font-size:12px;color:#6b7280;background:#fffbf5;border-bottom:1px solid var(--bdr)">
+          💡 Điền ngày bạn có thể làm tuần tới. Admin sẽ xem và sắp xếp lịch chính thức.
+        </div>
+        <div id="availForm"></div>
+        <div style="padding:12px 16px;border-top:1px solid var(--bdr)">
+          <button class="btn bp" id="submitAvailBtn">📨 Gửi Đăng Ký</button>
+        </div>
+      </div>
+      <div class="card" id="prevSubmitCard" style="display:none">
+        <div class="ch"><h2>✅ Đăng Ký Đã Gửi</h2></div>
+        <div class="cb" id="prevSubmitContent"></div>
+      </div>
+    </div>
+
+    <!-- ── BẢNG LƯƠNG ── -->
+    <div class="pane" id="pane-luong">
+      <div id="luongContent"></div>
+    </div>
+
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────
+var employees, schedData, multSettings, payslips, availData;
+
+function reloadData() {
+  employees    = JSON.parse(localStorage.getItem('mc_nv')      || '[]');
+  schedData    = JSON.parse(localStorage.getItem('mc_sched')   || '{}');
+  multSettings = JSON.parse(localStorage.getItem('mc_mult')    || '{"t7":1.5,"cn":2,"le":2}');
+  payslips     = JSON.parse(localStorage.getItem('mc_payslip') || '{}');
+  availData    = JSON.parse(localStorage.getItem('mc_avail')   || '{}');
+}
+reloadData();
+
+var curNv = null;
+
+// ── UTILS ────────────────────────────────────────────────────────────
+function fmtM(n){ return Math.round(n).toLocaleString('vi-VN')+'đ'; }
+function calcHrs(bd,kt){
+  if(!bd||!kt) return 0;
+  var a=bd.split(':'), b=kt.split(':');
+  var m=(parseInt(b[0])*60+parseInt(b[1]))-(parseInt(a[0])*60+parseInt(a[1]));
+  if(m<=0) m+=1440; return Math.round(m/60*10)/10;
+}
+function toISO(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function fmtDay(d){ return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0'); }
+function schedKey(nvId,iso){ return nvId+'|'+iso; }
+function getMonday(d){ var dt=new Date(d), day=dt.getDay(); dt.setDate(dt.getDate()+(day===0?-6:1-day)); dt.setHours(0,0,0,0); return dt; }
+function getWeekDates(mon){ var a=[]; for(var i=0;i<7;i++){ var d=new Date(mon); d.setDate(d.getDate()+i); a.push(d); } return a; }
+var VI_DAYS=['CN','T2','T3','T4','T5','T6','T7'];
+var VI_FULL=['Chủ Nhật','Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7'];
+function getMult(loai,dow){
+  if(loai==='le') return multSettings.le||2;
+  if(loai==='cuoituan') return dow===0?(multSettings.cn||2):(multSettings.t7||1.5);
+  if(dow===0) return multSettings.cn||2; if(dow===6) return multSettings.t7||1.5; return 1;
+}
+function getShiftCls(s){
+  if(!s||(!s.isOff&&!s.bd)) return 'emp';
+  if(s.isOff) return 'off'; if(s.loai==='le') return 'ovt';
+  var hrs=calcHrs(s.bd,s.kt), endH=parseInt((s.kt||'0:0').split(':')[0]), stH=parseInt((s.bd||'0:0').split(':')[0]);
+  if(hrs>=8) return 'ful'; if(endH<=13) return 'mor'; if(stH>=17) return 'eve'; return 'aft';
+}
+function toast(msg,type){
+  var el=document.getElementById('toast');
+  el.textContent=msg; el.className='show '+(type||'ok');
+  setTimeout(function(){ el.className=''; },2700);
+}
+
+// ── TABS ─────────────────────────────────────────────────────────────
+document.getElementById('tabBar').addEventListener('click', function(e){
+  var btn=e.target.closest('.tab-btn'); if(!btn) return;
+  var tab=btn.dataset.tab;
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelectorAll('.pane').forEach(function(p){ p.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('pane-'+tab).classList.add('active');
+  if(tab==='luong') renderLuong();
+  if(tab==='dangky') renderAvailForm();
+});
+
+// ── LOGIN ────────────────────────────────────────────────────────────
+function showLogin(){
+  reloadData();
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('mainApp').style.display='none';
+  var grid=document.getElementById('nvGrid');
+  if(!employees.length){
+    grid.innerHTML='';
+    document.getElementById('noNvMsg').style.display='block';
+    return;
+  }
+  document.getElementById('noNvMsg').style.display='none';
+  var html='';
+  for(var i=0;i<employees.length;i++){
+    var nv=employees[i];
+    html+='<button class="nv-btn" onclick="selectNv(\''+nv.id+'\')">'+
+      '<span style="font-size:22px">'+(nv.dd==='store'?'🏪':'🏭')+'</span>'+
+      '<span>'+nv.ten+
+        '<span class="nb-sub">'+(nv.dd==='store'?'Store':'Xưởng')+' · '+(nv.loai==='full'?'Full-time':'Part-time')+'</span>'+
+      '</span>'+
+    '</button>';
+  }
+  grid.innerHTML=html;
+}
+
+function selectNv(id){
+  reloadData();
+  curNv=employees.find(function(e){ return e.id===id; });
+  if(!curNv) return;
+  localStorage.setItem('mc_emp_last', id);
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('mainApp').style.display='block';
+  document.getElementById('hName').textContent=curNv.ten;
+  document.getElementById('hSub').textContent=(curNv.dd==='store'?'🏪 Store':'🏭 Xưởng')+' · The Muse Candle';
+  document.getElementById('hChg').style.display='inline-flex';
+  renderRemind();
+  renderSched();
+  requestNotifPermission();
+}
+
+// ── REMIND ───────────────────────────────────────────────────────────
+function renderRemind(){
+  var today=toISO(new Date()), todayObj=new Date();
+  var tmrObj=new Date(); tmrObj.setDate(tmrObj.getDate()+1);
+  var tmrStr=toISO(tmrObj);
+  var sT=schedData[schedKey(curNv.id,today)];
+  var sTmr=schedData[schedKey(curNv.id,tmrStr)];
+  var html='';
+
+  if(sT && !sT.isOff && sT.bd){
+    var hrs=calcHrs(sT.bd,sT.kt), mult=getMult(sT.loai,todayObj.getDay()), pay=hrs*mult*curNv.luong;
+    html+='<div class="rmcard today">'+
+      '<div class="rm-lbl" style="color:#2e7d32">🟢 CA HÔM NAY — '+VI_FULL[todayObj.getDay()].toUpperCase()+' '+fmtDay(todayObj)+'</div>'+
+      '<div class="rm-shift">⏰ '+sT.bd+' – '+sT.kt+(mult>1?' <span style="font-size:13px;color:var(--pur)">×'+mult+'</span>':'')+'</div>'+
+      '<div class="rm-sub">'+hrs+'h làm việc · Dự kiến '+fmtM(pay)+(sT.gc?' · '+sT.gc:'')+'</div>'+
+    '</div>';
+  } else if(sT && sT.isOff){
+    html+='<div class="rmcard off">'+
+      '<div class="rm-lbl" style="color:#c62828">📅 HÔM NAY</div>'+
+      '<div class="rm-shift" style="color:#c62828;font-size:16px">🔴 Nghỉ hôm nay</div>'+
+    '</div>';
+  }
+
+  if(sTmr && !sTmr.isOff && sTmr.bd){
+    var hrsTmr=calcHrs(sTmr.bd,sTmr.kt);
+    html+='<div class="rmcard tmr">'+
+      '<div class="rm-lbl" style="color:#9a6900">🔔 CA NGÀY MAI — '+VI_FULL[tmrObj.getDay()].toUpperCase()+' '+fmtDay(tmrObj)+'</div>'+
+      '<div class="rm-shift" style="font-size:16px">'+sTmr.bd+' – '+sTmr.kt+'</div>'+
+      '<div class="rm-sub">'+hrsTmr+'h làm việc'+(sTmr.gc?' · '+sTmr.gc:'')+'</div>'+
+    '</div>';
+  }
+
+  document.getElementById('remindBar').innerHTML=html;
+}
+
+// ── NOTIFICATION ─────────────────────────────────────────────────────
+function requestNotifPermission(){
+  if(!('Notification' in window)) return;
+  if(Notification.permission==='granted'){
+    fireNotifIfNeeded();
+  } else if(Notification.permission!=='denied'){
+    var today=toISO(new Date());
+    var s=schedData[schedKey(curNv.id,today)];
+    if(s&&!s.isOff&&s.bd){
+      Notification.requestPermission().then(function(p){
+        if(p==='granted') fireNotifIfNeeded();
+      });
+    }
+  }
+}
+function fireNotifIfNeeded(){
+  var today=toISO(new Date());
+  var s=schedData[schedKey(curNv.id,today)];
+  var lastKey='mc_notif_'+curNv.id+'_'+today;
+  if(s&&!s.isOff&&s.bd&&!localStorage.getItem(lastKey)){
+    new Notification('🕯️ Ca làm hôm nay — '+curNv.ten,{
+      body:'Giờ làm: '+s.bd+' – '+s.kt+'\nThe Muse Candle · Vũng Tàu',
+      tag:'shift-today'
+    });
+    localStorage.setItem(lastKey,'1');
+  }
+}
+
+// ── SCHEDULE VIEW ────────────────────────────────────────────────────
+var viewMon=getMonday(new Date());
+document.getElementById('prevWk').addEventListener('click',function(){ viewMon=new Date(viewMon); viewMon.setDate(viewMon.getDate()-7); renderSched(); });
+document.getElementById('nextWk').addEventListener('click',function(){ viewMon=new Date(viewMon); viewMon.setDate(viewMon.getDate()+7); renderSched(); });
+document.getElementById('thisWk').addEventListener('click',function(){ viewMon=getMonday(new Date()); renderSched(); });
+
+function renderSched(){
+  if(!curNv) return;
+  reloadData();
+  var dates=getWeekDates(viewMon), today=toISO(new Date());
+  document.getElementById('wkLbl').textContent=fmtDay(viewMon)+' – '+fmtDay(dates[6]);
+  var html='';
+  for(var i=0;i<dates.length;i++){
+    var d=dates[i], iso=toISO(d), dow=d.getDay();
+    var isToday=iso===today, isWend=dow===0||dow===6;
+    var s=schedData[schedKey(curNv.id,iso)];
+    var cls=getShiftCls(s);
+    var lblCls='wlabel'+(isToday?' tod':isWend?' wnd':'');
+    html+='<div class="wrow">'+
+      '<div class="'+lblCls+'"><div class="wln">'+VI_DAYS[dow]+'</div><div class="wld">'+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'</div></div>'+
+      '<div class="wshift">';
+    if(!s||(!s.isOff&&!s.bd)){
+      html+='<div class="sbadge emp">Chưa có lịch</div>';
+    } else if(s.isOff){
+      html+='<div class="sbadge off">🔴 NGHỈ</div>';
+    } else {
+      var hrs=calcHrs(s.bd,s.kt), mult=getMult(s.loai,dow), pay=hrs*mult*curNv.luong;
+      var mb=mult>1?'<span class="sb-mult">×'+mult+'</span>':'';
+      html+='<div class="sbadge '+cls+'">'+s.bd+' – '+s.kt+mb+
+        '<span class="sb-sub">'+hrs+'h · Dự kiến '+fmtM(pay)+(s.gc?' · <em>'+s.gc+'</em>':'')+'</span>'+
+      '</div>';
+    }
+    html+='</div></div>';
+  }
+  document.getElementById('schedView').innerHTML=html;
+}
+
+// ── AVAILABILITY FORM ────────────────────────────────────────────────
+var nextMon = (function(){ var m=getMonday(new Date()); m.setDate(m.getDate()+7); return m; })();
+
+function renderAvailForm(){
+  if(!curNv) return;
+  reloadData();
+  var dates=getWeekDates(nextMon), wkStart=toISO(nextMon);
+  document.getElementById('nextWkRange').textContent=fmtDay(nextMon)+' – '+fmtDay(dates[6]);
+  var existKey=curNv.id+'|'+wkStart;
+  var existing=availData[existKey];
+  var html='';
+  for(var i=0;i<dates.length;i++){
+    var d=dates[i], iso=toISO(d), dow=d.getDay(), isWend=dow===0||dow===6;
+    var slot=existing&&existing.slots?existing.slots.find(function(s){ return s.date===iso; }):null;
+    var status=slot?slot.status:'maybe';
+    var note=slot&&slot.note?slot.note:'';
+    html+='<div class="arow">'+
+      '<div class="alabel'+(isWend?' wnd':'')+'"><div class="aln">'+VI_DAYS[dow]+'</div><div class="ald">'+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'</div></div>'+
+      '<div class="actrl">'+
+        '<div class="atog" data-date="'+iso+'">'+
+          '<button type="button" class="atog-btn'+(status==='on'?' sel-on':'')+'" data-val="on">✅ Được</button>'+
+          '<button type="button" class="atog-btn'+(status==='off'?' sel-off':'')+'" data-val="off">❌ Bận</button>'+
+          '<button type="button" class="atog-btn'+(status==='maybe'?' sel-maybe':'')+'" data-val="maybe">🤔 Tùy</button>'+
+        '</div>'+
+        '<input class="anote" type="text" data-date="'+iso+'" placeholder="Ghi chú giờ, yêu cầu..." value="'+note+'" />'+
+      '</div>'+
+    '</div>';
+  }
+  document.getElementById('availForm').innerHTML=html;
+
+  // Toggle click handler
+  document.getElementById('availForm').addEventListener('click', function(e){
+    var btn=e.target.closest('.atog-btn'); if(!btn) return;
+    var val=btn.dataset.val;
+    var tog=btn.closest('.atog');
+    tog.querySelectorAll('.atog-btn').forEach(function(b){ b.className='atog-btn'; });
+    btn.className='atog-btn sel-'+val;
+  });
+
+  // Show existing submission
+  if(existing){
+    showPrevSubmit(existing);
+  } else {
+    document.getElementById('prevSubmitCard').style.display='none';
+  }
+}
+
+function showPrevSubmit(sub){
+  var card=document.getElementById('prevSubmitCard');
+  var cont=document.getElementById('prevSubmitContent');
+  card.style.display='block';
+  var d=new Date(sub.submittedAt);
+  var html='<div style="font-size:12px;color:var(--mut);margin-bottom:10px">Đã gửi lúc: <strong>'+d.toLocaleString('vi-VN')+'</strong></div>';
+  var statusIcons={on:'✅ Được làm',off:'❌ Bận',maybe:'🤔 Tùy'};
+  var statusCols={on:'#2e7d32',off:'#c62828',maybe:'#9a6900'};
+  html+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
+  for(var i=0;i<sub.slots.length;i++){
+    var sl=sub.slots[i]; var dp=sl.date.split('-');
+    var dObj=new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
+    html+='<div style="background:var(--bg);border:1px solid var(--bdr);border-radius:8px;padding:6px 10px;font-size:12px">'+
+      '<strong style="color:'+statusCols[sl.status]+'">'+VI_DAYS[dObj.getDay()]+' '+String(dObj.getDate()).padStart(2,'0')+'/'+String(dObj.getMonth()+1).padStart(2,'0')+'</strong> '+
+      statusIcons[sl.status]+
+      (sl.note?' <span style="color:var(--mut)">· '+sl.note+'</span>':'')+
+    '</div>';
+  }
+  html+='</div>';
+  cont.innerHTML=html;
+}
+
+document.getElementById('submitAvailBtn').addEventListener('click', function(){
+  if(!curNv){ toast('Chưa chọn nhân viên!','err'); return; }
+  var wkStart=toISO(nextMon), dates=getWeekDates(nextMon), slots=[];
+  for(var i=0;i<dates.length;i++){
+    var iso=toISO(dates[i]);
+    var tog=document.querySelector('.atog[data-date="'+iso+'"]');
+    var activeBtn=tog?tog.querySelector('.atog-btn[class*="sel-"]'):null;
+    var status=activeBtn?(activeBtn.dataset.val):'maybe';
+    var noteEl=document.querySelector('.anote[data-date="'+iso+'"]');
+    slots.push({date:iso, status:status, note:noteEl?noteEl.value.trim():''});
+  }
+  reloadData();
+  availData[curNv.id+'|'+wkStart]={
+    nvId:curNv.id, nvTen:curNv.ten,
+    weekStart:wkStart, slots:slots,
+    submittedAt:new Date().toISOString()
+  };
+  localStorage.setItem('mc_avail', JSON.stringify(availData));
+  toast('✅ Đã gửi đăng ký lịch!');
+  showPrevSubmit(availData[curNv.id+'|'+wkStart]);
+});
+
+// ── PAYSLIP VIEW ─────────────────────────────────────────────────────
+function renderLuong(){
+  if(!curNv) return;
+  reloadData();
+  var mySlips=payslips[curNv.id]||[];
+  var cont=document.getElementById('luongContent');
+  if(!mySlips.length){
+    cont.innerHTML='<div class="card"><div class="cb" style="text-align:center;padding:32px;color:var(--mut)">'+
+      '<div style="font-size:36px;margin-bottom:12px">💰</div>'+
+      '<div style="font-weight:700;color:var(--acc)">Chưa có bảng lương</div>'+
+      '<div style="font-size:12px;margin-top:8px">Admin chưa tính lương, hoặc bạn chưa có ca trong kỳ nào.</div>'+
+    '</div></div>';
+    return;
+  }
+  var html='<div class="card"><div class="ch"><h2>💰 Bảng Lương Của Tôi</h2><span style="font-size:11px;color:var(--mut)">'+mySlips.length+' kỳ gần nhất</span></div><div class="cb">';
+  for(var i=0;i<mySlips.length;i++){
+    var ps=mySlips[i];
+    var calcDate=new Date(ps.calculatedAt);
+    var isLatest=i===0;
+    html+='<div class="pscard">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px;margin-bottom:4px">'+
+        '<span style="font-size:14px;font-weight:700;color:var(--acc)">'+(isLatest?'🆕 ':'')+'Kỳ '+ps.period+'</span>'+
+        '<span style="font-size:11px;color:var(--mut)">Tính '+calcDate.toLocaleDateString('vi-VN')+'</span>'+
+      '</div>'+
+      '<div class="psgrid">'+
+        '<div class="psi"><div class="psiv">'+ps.tDays+'</div><div class="psil">Ngày có ca</div></div>'+
+        '<div class="psi"><div class="psiv">'+ps.tHrs+'h</div><div class="psil">Giờ quy đổi</div></div>'+
+        '<div class="psi"><div class="psiv">'+fmtM(ps.tLcb)+'</div><div class="psil">Lương cơ bản</div></div>'+
+        '<div class="psi"><div class="psiv" style="color:var(--pur)">'+fmtM(ps.tCps)+'</div><div class="psil">Chi phí PS</div></div>'+
+      '</div>'+
+      '<div class="pstot">'+
+        '<span class="ptl">💰 TỔNG NHẬN</span>'+
+        '<span class="pta">'+fmtM(ps.tTotal)+'</span>'+
+      '</div>'+
+    '</div>';
+    if(i<mySlips.length-1) html+='<hr style="border:none;border-top:1px solid var(--bdr);margin:4px 0">';
+  }
+  html+='</div></div>';
+  cont.innerHTML=html;
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────
+var lastId=localStorage.getItem('mc_emp_last');
+if(lastId){
+  var lastNv=employees.find(function(e){ return e.id===lastId; });
+  if(lastNv) selectNv(lastNv.id);
+  else showLogin();
+} else {
+  showLogin();
+}
+</script>
+</body>
+</html>

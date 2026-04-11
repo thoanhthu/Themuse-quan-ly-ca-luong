@@ -189,11 +189,24 @@ tbody td{padding:10px 12px;vertical-align:middle}
 <body>
 
 <header>
-  <div style="font-size:26px">🕯️</div>
-  <div>
-    <h1>Quản Lý Ca Làm & Lương</h1>
-    <small>The Muse Candle — TNHH Scent House · Vũng Tàu</small>
+  <div style="display:flex;align-items:center;gap:10px">
+    <svg width="42" height="42" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M36,4 C34.8,6.8 37.5,9 36.3,11.8 C35.1,14.6 37.8,16.8 36.6,19.6" stroke="#C9B89A" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="36" cy="21.8" r="1.9" fill="#C9B89A"/>
+      <path d="M25,14 C23.8,16.8 26.5,19 25.3,21.8 C24.1,24.6 26.8,26.8 25.6,29.6" stroke="#C9B89A" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="25" cy="31.8" r="1.9" fill="#C9B89A"/>
+      <path d="M14,24 C12.8,26.8 15.5,29 14.3,31.8 C13.1,34.6 15.8,36.8 14.6,39.6" stroke="#C9B89A" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="14" cy="41" r="1.6" fill="#C9B89A"/>
+    </svg>
+    <div>
+      <div style="display:flex;align-items:baseline;gap:1px;line-height:1.15">
+        <span style="font-family:Georgia,'Times New Roman',serif;font-style:italic;color:#C9B89A;font-size:17px">the</span>
+        <span style="font-family:'Segoe UI',Arial,sans-serif;font-weight:700;color:#fff;font-size:19px;letter-spacing:1.5px"> muse</span>
+      </div>
+      <small style="font-size:10px;opacity:.75;letter-spacing:.3px">Quản Lý Ca Làm & Lương · Vũng Tàu</small>
+    </div>
   </div>
+  <a href="employee.html" target="_blank" style="font-size:12px;font-weight:600;background:rgba(255,255,255,.18);padding:6px 13px;border-radius:20px;color:#fff;text-decoration:none;white-space:nowrap">👤 Trang Nhân Viên ↗</a>
 </header>
 
 <div id="driveBar">
@@ -419,6 +432,14 @@ tbody td{padding:10px 12px;vertical-align:middle}
 
 <!-- ===================== LỊCH TUẦN ===================== -->
 <div class="pane" id="pane-lich">
+  <!-- Đăng ký lịch từ nhân viên -->
+  <div class="card" id="availCard" style="display:none">
+    <div class="ch">
+      <h2>📝 Đăng Ký Lịch Từ Nhân Viên</h2>
+      <button class="btn bh bs" onclick="renderAvailSuggestions()">🔄 Làm mới</button>
+    </div>
+    <div class="cb" id="availSuggest"></div>
+  </div>
   <div class="card">
     <div class="ch"><h2>📅 Lịch Làm Việc Theo Tuần</h2></div>
     <div class="cb">
@@ -635,7 +656,7 @@ document.getElementById('tabBar').addEventListener('click', function(e) {
   document.querySelectorAll('.pane').forEach(function(p){ p.classList.remove('active'); });
   btn.classList.add('active');
   document.getElementById('pane-' + tab).classList.add('active');
-  if (tab === 'lich')  renderSched();
+  if (tab === 'lich')  { renderSched(); renderAvailSuggestions(); }
   if (tab === 'luong') { populateLSel(); setThisMonth(); }
   if (tab === 'db')    renderDashboard();
 });
@@ -1204,6 +1225,16 @@ function calcSalary() {
   document.getElementById('lStats').style.display='grid';
   var fromD=new Date(from.replace(/-/g,'/')); var toD=new Date(to.replace(/-/g,'/'));
   var periodLabel=fmtDay(fromD)+' – '+fmtDay(toD);
+  // ── Lưu bảng lương cho trang nhân viên ──
+  var payslips=JSON.parse(localStorage.getItem('mc_payslip')||'{}');
+  for(var pi=0;pi<results.length;pi++){
+    var pr=results[pi]; if(pr.tDays===0) continue;
+    if(!payslips[pr.nv.id]) payslips[pr.nv.id]=[];
+    payslips[pr.nv.id]=payslips[pr.nv.id].filter(function(p){ return !(p.from===from&&p.to===to); });
+    payslips[pr.nv.id].unshift({from:from,to:to,period:periodLabel,tTotal:pr.tTotal,tHrs:pr.tHrs,tDays:pr.tDays,tLcb:pr.tLcb,tCps:pr.tCps,calculatedAt:new Date().toISOString()});
+    payslips[pr.nv.id]=payslips[pr.nv.id].slice(0,6);
+  }
+  localStorage.setItem('mc_payslip',JSON.stringify(payslips));
   if (!results.length) { document.getElementById('lResult').innerHTML='<div class="card"><div class="cb" style="text-align:center;color:var(--mut)">Không có dữ liệu.</div></div>'; return; }
   var html='<div class="card"><div class="ch"><h2>📊 Bảng Lương &nbsp;'+periodLabel+'</h2><span style="font-size:12px;color:var(--mut)">'+allDates.length+' ngày trong kỳ</span></div><div class="cb">';
   for (var ri=0;ri<results.length;ri++) {
@@ -1311,6 +1342,43 @@ function downloadQR() {
   a.download = 'QR-chuyen-khoan.png';
   a.target = '_blank';
   a.click();
+}
+
+// ── AVAILABILITY SUGGESTIONS (từ trang nhân viên) ────────────────────
+function renderAvailSuggestions() {
+  var availData=JSON.parse(localStorage.getItem('mc_avail')||'{}');
+  var nextMon=(function(){ var m=new Date(getMonday(new Date())); m.setDate(m.getDate()+7); return m; })();
+  var wkStart=toISO(nextMon);
+  var VI_STATUS={'on':'✅ Được','off':'❌ Bận','maybe':'🤔 Tùy'};
+  var VI_SCOL={'on':'#2e7d32','off':'#c62828','maybe':'#9a6900'};
+  var card=document.getElementById('availCard');
+  var cont=document.getElementById('availSuggest');
+  // Find submissions for next week
+  var subs=[]; var keys=Object.keys(availData);
+  for(var k=0;k<keys.length;k++){
+    var entry=availData[keys[k]];
+    if(entry.weekStart===wkStart) subs.push(entry);
+  }
+  if(!subs.length){ card.style.display='none'; return; }
+  card.style.display='block';
+  var html='<div style="font-size:12px;color:var(--mut);margin-bottom:12px">Tuần tới ('+fmtDay(nextMon)+' – '+fmtDay(new Date(nextMon.getTime()+6*86400000))+'): <strong>'+subs.length+' nhân viên</strong> đã gửi đăng ký.</div>';
+  for(var si=0;si<subs.length;si++){
+    var sub=subs[si]; var nv=employees.find(function(e){ return e.id===sub.nvId; });
+    html+='<div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px dashed var(--bdr)">'+
+      '<div style="font-weight:700;color:var(--acc);margin-bottom:6px">👤 '+(nv?nv.ten:sub.nvTen)+'</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:5px">';
+    for(var di=0;di<sub.slots.length;di++){
+      var sl=sub.slots[di]; var dp=sl.date.split('-');
+      var dObj=new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
+      html+='<div style="background:var(--bg);border:1px solid var(--bdr);border-radius:7px;padding:5px 9px;font-size:12px">'+
+        '<strong>'+VI_DAYS[dObj.getDay()]+' '+String(dObj.getDate()).padStart(2,'0')+'/'+String(parseInt(dp[1])).padStart(2,'0')+'</strong>'+
+        ' <span style="color:'+VI_SCOL[sl.status]+'">'+VI_STATUS[sl.status]+'</span>'+
+        (sl.note?'<br><span style="color:var(--mut);font-size:11px">'+sl.note+'</span>':'')+
+      '</div>';
+    }
+    html+='</div></div>';
+  }
+  cont.innerHTML=html;
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────
