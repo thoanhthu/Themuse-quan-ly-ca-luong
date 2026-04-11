@@ -197,8 +197,7 @@ tbody td{padding:10px 12px;vertical-align:middle}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -674,7 +673,7 @@ var schedData = JSON.parse(localStorage.getItem('mc_sched') || '{}');
 function saveAll() {
   localStorage.setItem('mc_nv',    JSON.stringify(employees));
   localStorage.setItem('mc_sched', JSON.stringify(schedData));
-  if (typeof saveAllToFb === 'function') saveAllToFb();
+  if (typeof saveAllToSupabase === 'function') saveAllToSupabase();
 }
 
 // ── UTILS ────────────────────────────────────────────────────────────
@@ -710,7 +709,7 @@ var multSettings = JSON.parse(localStorage.getItem('mc_mult') || '{"t7":1.5,"cn"
 
 function saveMult() {
   localStorage.setItem('mc_mult', JSON.stringify(multSettings));
-  if (typeof saveAllToFb === 'function') saveAllToFb();
+  if (typeof saveAllToSupabase === 'function') saveAllToSupabase();
 }
 function getMultForShift(loai, dow) {
   // loai: 'thuong' | 'cuoituan' | 'le'
@@ -1399,7 +1398,7 @@ function calcSalary() {
     payslips[pr.nv.id]=payslips[pr.nv.id].slice(0,6);
   }
   localStorage.setItem('mc_payslip',JSON.stringify(payslips));
-  if (typeof saveAllToFb === 'function') saveAllToFb();
+  if (typeof saveAllToSupabase === 'function') saveAllToSupabase();
   if (!results.length) { document.getElementById('lResult').innerHTML='<div class="card"><div class="cb" style="text-align:center;color:var(--mut)">Không có dữ liệu.</div></div>'; return; }
   var html='<div class="card"><div class="ch"><h2>📊 Bảng Lương &nbsp;'+periodLabel+'</h2><span style="font-size:12px;color:var(--mut)">'+allDates.length+' ngày trong kỳ</span></div><div class="cb">';
   for (var ri=0;ri<results.length;ri++) {
@@ -1737,7 +1736,7 @@ function saveEjConfig() {
   };
   if (!cfg.serviceId || !cfg.templateId || !cfg.publicKey) { toast('Vui lòng điền đủ Service ID, Template ID và Public Key!','err'); return; }
   localStorage.setItem(_ejCfgKey, JSON.stringify(cfg));
-  if (typeof saveAllToFb === 'function') saveAllToFb();
+  if (typeof saveAllToSupabase === 'function') saveAllToSupabase();
   try { emailjs.init(cfg.publicKey); } catch(e){}
   document.getElementById('ejStatus').textContent = '✅ Đã lưu lúc '+new Date().toLocaleTimeString('vi-VN');
   toast('✅ Đã lưu cài đặt EmailJS!');
@@ -1871,7 +1870,7 @@ document.getElementById('saveAdminPwBtn').addEventListener('click',function(){
   var cfg=JSON.parse(localStorage.getItem('mc_admin')||'{}');
   cfg.pw=encPw(pw);
   localStorage.setItem('mc_admin',JSON.stringify(cfg));
-  if (typeof saveAllToFb === 'function') saveAllToFb();
+  if (typeof saveAllToSupabase === 'function') saveAllToSupabase();
   document.getElementById('newAdminPw').value='';
   document.getElementById('confirmAdminPw').value='';
   toast(pw?'✅ Đã lưu mật khẩu admin!':'✅ Đã xóa mật khẩu admin (không yêu cầu đăng nhập).');
@@ -1947,64 +1946,80 @@ if (document.readyState === 'loading') {
   initApp();
 }
 
-var _isFbFirstLoad = true;
+var _sbFirstLoad = true;
 var _lastAiSuggestions = null;
-var db = null;
+var supabase = null;
 try {
-  firebase.initializeApp({
-    apiKey: "AIzaSyAq9oHkYdR6-aNyWMiFeje3oAtDXeho_fE",
-    authDomain: "themuse-quanlyca.firebaseapp.com",
-    projectId: "themuse-quanlyca",
-    storageBucket: "themuse-quanlyca.firebasestorage.app",
-    messagingSenderId: "882841314633",
-    appId: "1:882841314633:web:7e4c208e61ec3348e7a698"
-  });
-  db = firebase.firestore();
+  const { createClient } = window.supabase;
+  supabase = createClient(
+    'https://jbidxvzubgvgbjqgawgp.supabase.co',
+    'sb_publishable_cSm047uZZxHRRSmeWwaihw_WTw0O3em'
+  );
+  document.getElementById('fbStatus').textContent = '🟡 Đang kết nối Supabase...';
 } catch(e) {
-  document.getElementById('fbStatus').textContent = '⚠️ Firebase lỗi: ' + e.message;
+  document.getElementById('fbStatus').textContent = '⚠️ Supabase lỗi: ' + e.message;
   document.getElementById('fbStatus').style.color = '#c62828';
 }
 
-function saveAllToFb() {
-  if (!db) return;
-  db.collection("appData").doc("mainConfig").set({
-    employees: JSON.parse(localStorage.getItem('mc_nv')||'[]'),
-    schedData: JSON.parse(localStorage.getItem('mc_sched')||'{}'),
-    multSettings: JSON.parse(localStorage.getItem('mc_mult')||'{"t7":1.5,"cn":2,"le":2}'),
-    payslips: JSON.parse(localStorage.getItem('mc_payslip')||'{}'),
-    avail: JSON.parse(localStorage.getItem('mc_avail')||'{}'),
-    admin: JSON.parse(localStorage.getItem('mc_admin')||'{}'),
-    emailjs: JSON.parse(localStorage.getItem('mc_emailjs')||'{}')
-  }, {merge:true}).catch(function(e){ console.error("Firebase save error:", e); });
+async function saveAllToSupabase() {
+  if (!supabase) return;
+  try {
+    await supabase.from('app_config').update({
+      employees: JSON.parse(localStorage.getItem('mc_nv')||'[]'),
+      sched_data: JSON.parse(localStorage.getItem('mc_sched')||'{}'),
+      mult_settings: JSON.parse(localStorage.getItem('mc_mult')||'{"t7":1.5,"cn":2,"le":2}'),
+      payslips: JSON.parse(localStorage.getItem('mc_payslip')||'{}'),
+      avail: JSON.parse(localStorage.getItem('mc_avail')||'{}'),
+      admin_config: JSON.parse(localStorage.getItem('mc_admin')||'{}'),
+      emailjs_config: JSON.parse(localStorage.getItem('mc_emailjs')||'{}')
+    }).eq('id', 1);
+  } catch(e) {
+    console.error("Supabase save error:", e);
+  }
 }
 
-if (db) db.collection("appData").doc("mainConfig").onSnapshot(function(doc) {
-  if (doc.exists) {
-    var d = doc.data();
+if (supabase) {
+  // Fetch initial data
+  supabase.from('app_config').select('*').eq('id', 1).then(function(res) {
+    if (res.data && res.data.length > 0) {
+      var d = res.data[0];
+      if(d.employees) { employees = d.employees; localStorage.setItem('mc_nv', JSON.stringify(employees)); }
+      if(d.sched_data) { schedData = d.sched_data; localStorage.setItem('mc_sched', JSON.stringify(schedData)); }
+      if(d.mult_settings) { multSettings = d.mult_settings; localStorage.setItem('mc_mult', JSON.stringify(multSettings)); }
+      if(d.payslips) localStorage.setItem('mc_payslip', JSON.stringify(d.payslips));
+      if(d.avail) localStorage.setItem('mc_avail', JSON.stringify(d.avail));
+      if(d.admin_config) localStorage.setItem('mc_admin', JSON.stringify(d.admin_config));
+      if(d.emailjs_config) localStorage.setItem('mc_emailjs', JSON.stringify(d.emailjs_config));
+
+      renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); loadEjConfig();
+      _sbFirstLoad = false;
+      document.getElementById('fbStatus').textContent='🟢 Đã lấy dữ liệu hệ thống';
+    }
+  }).catch(function(err){
+    console.error("Supabase fetch error:", err);
+    document.getElementById('fbStatus').textContent='🔴 Lỗi kết nối';
+    document.getElementById('fbStatus').style.color='#c62828';
+  });
+
+  // Real-time updates
+  supabase.on('postgres_changes', {
+    event: 'UPDATE',
+    schema: 'public',
+    table: 'app_config'
+  }, function(payload) {
+    var d = payload.new;
     if(d.employees) { employees = d.employees; localStorage.setItem('mc_nv', JSON.stringify(employees)); }
-    if(d.schedData) { schedData = d.schedData; localStorage.setItem('mc_sched', JSON.stringify(schedData)); }
-    if(d.multSettings) { multSettings = d.multSettings; localStorage.setItem('mc_mult', JSON.stringify(multSettings)); }
+    if(d.sched_data) { schedData = d.sched_data; localStorage.setItem('mc_sched', JSON.stringify(schedData)); }
+    if(d.mult_settings) { multSettings = d.mult_settings; localStorage.setItem('mc_mult', JSON.stringify(multSettings)); }
     if(d.payslips) localStorage.setItem('mc_payslip', JSON.stringify(d.payslips));
     if(d.avail) localStorage.setItem('mc_avail', JSON.stringify(d.avail));
-    if(d.admin) localStorage.setItem('mc_admin', JSON.stringify(d.admin));
-    if(d.emailjs) localStorage.setItem('mc_emailjs', JSON.stringify(d.emailjs));
-    
-    // Refresh lại Giao diện khi Dữ liệu máy chủ đổ về
+    if(d.admin_config) localStorage.setItem('mc_admin', JSON.stringify(d.admin_config));
+    if(d.emailjs_config) localStorage.setItem('mc_emailjs', JSON.stringify(d.emailjs_config));
+
     renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); loadEjConfig();
-    
-    if(!_isFbFirstLoad) toast("Dữ liệu đã đồng bộ từ máy chủ!", "ok");
-    else { _isFbFirstLoad = false; document.getElementById('fbStatus').textContent='🟢 Đã lấy dữ liệu hệ thống'; }
-  } else {
-    // Nếu chưa có file trên máy chủ thì mạnh dạn tạo bằng dữ liệu hiện tại
-    saveAllToFb();
-    _isFbFirstLoad = false;
-    document.getElementById('fbStatus').textContent='🟢 Đã khởi tạo dữ liệu mây';
-  }
-}, function(err){
-  toast("Lỗi kết nối máy chủ FB: " + err.message, "err");
-  document.getElementById('fbStatus').textContent='🔴 Lỗi kết nối';
-  document.getElementById('fbStatus').style.color='#c62828';
-});
+    if(!_sbFirstLoad) toast("Dữ liệu đã đồng bộ từ máy chủ!", "ok");
+  }).subscribe();
+}
 </script>
 
 <!-- ========= ADMIN LOGIN OVERLAY ========= -->

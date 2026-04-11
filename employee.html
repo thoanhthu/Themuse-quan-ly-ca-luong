@@ -611,7 +611,7 @@ document.getElementById('submitAvailBtn').addEventListener('click', function(){
     submittedAt:new Date().toISOString()
   };
   localStorage.setItem('mc_avail', JSON.stringify(availData));
-  if (typeof saveAvailToFb === 'function') saveAvailToFb(availData);
+  if (typeof saveAvailToSupabase === 'function') saveAvailToSupabase(availData);
   toast('✅ Đã gửi đăng ký lịch!');
   showPrevSubmit(availData[curNv.id+'|'+wkStart]);
 });
@@ -677,46 +677,32 @@ if(sessId){
 }
 </script>
 
-<!-- FIREBASE SYNC -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<!-- SUPABASE SYNC -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-firebase.initializeApp({
-  apiKey: "AIzaSyAq9oHkYdR6-aNyWMiFeje3oAtDXeho_fE",
-  authDomain: "themuse-quanlyca.firebaseapp.com",
-  projectId: "themuse-quanlyca",
-  storageBucket: "themuse-quanlyca.firebasestorage.app",
-  messagingSenderId: "882841314633",
-  appId: "1:882841314633:web:7e4c208e61ec3348e7a698"
-});
-var db = firebase.firestore();
-var _fbFirstRender = true;
+const { createClient } = window.supabase;
+var supabase = createClient(
+  'https://jbidxvzubgvgbjqgawgp.supabase.co',
+  'sb_publishable_cSm047uZZxHRRSmeWwaihw_WTw0O3em'
+);
+var _sbFirstRender = true;
 
-db.collection("appData").doc("mainConfig").onSnapshot(function(doc) {
-  if (doc.exists) {
-    var d = doc.data();
+// Fetch initial data
+supabase.from('app_config').select('*').eq('id', 1).then(function(res) {
+  if (res.data && res.data.length > 0) {
+    var d = res.data[0];
     if(d.employees) { employees = d.employees; localStorage.setItem('mc_nv', JSON.stringify(employees)); }
-    if(d.schedData) { schedData = d.schedData; localStorage.setItem('mc_sched', JSON.stringify(schedData)); }
-    if(d.multSettings) { multSettings = d.multSettings; localStorage.setItem('mc_mult', JSON.stringify(multSettings)); }
+    if(d.sched_data) { schedData = d.sched_data; localStorage.setItem('mc_sched', JSON.stringify(schedData)); }
+    if(d.mult_settings) { multSettings = d.mult_settings; localStorage.setItem('mc_mult', JSON.stringify(multSettings)); }
     if(d.payslips) { payslips = d.payslips; localStorage.setItem('mc_payslip', JSON.stringify(d.payslips)); }
     if(d.avail) { availData = d.avail; localStorage.setItem('mc_avail', JSON.stringify(d.avail)); }
-    
-    // Refresh UI automatically
+
     renderFbExt();
-    
     var stat = document.getElementById('empFbStatus');
     if(stat) stat.textContent = '🟢 Dữ liệu đồng bộ thành công';
-    if(!_fbFirstRender) toast("Dữ liệu hệ thống mới được cập nhật!", "ok");
-    _fbFirstRender = false;
-  } else {
-    var stat = document.getElementById('empFbStatus');
-    if(stat) {
-      stat.textContent = '🔴 Chưa có dữ liệu! Vui lòng nhờ Admin mở phần mềm để đẩy dữ liệu lên máy chủ.';
-      stat.style.color = 'var(--red)';
-    }
-    _fbFirstRender = false;
+    _sbFirstRender = false;
   }
-}, function(e){
+}).catch(function(e){
   var stat = document.getElementById('empFbStatus');
   if(stat) {
     stat.textContent = '🔴 Mất mạng hoặc lỗi kết nối';
@@ -724,12 +710,32 @@ db.collection("appData").doc("mainConfig").onSnapshot(function(doc) {
   }
 });
 
-function saveAvailToFb(newAvail) {
-  db.collection("appData").doc("mainConfig").set({
-    avail: newAvail
-  }, {merge: true}).then(function(){
-    console.log("Sent avail to FireStore");
-  }).catch(function(e){ toast('Lỗi gửi Firebase: '+e.message, 'err'); });
+// Real-time updates
+supabase.on('postgres_changes', {
+  event: 'UPDATE',
+  schema: 'public',
+  table: 'app_config'
+}, function(payload) {
+  var d = payload.new;
+  if(d.employees) { employees = d.employees; localStorage.setItem('mc_nv', JSON.stringify(employees)); }
+  if(d.sched_data) { schedData = d.sched_data; localStorage.setItem('mc_sched', JSON.stringify(schedData)); }
+  if(d.mult_settings) { multSettings = d.mult_settings; localStorage.setItem('mc_mult', JSON.stringify(multSettings)); }
+  if(d.payslips) { payslips = d.payslips; localStorage.setItem('mc_payslip', JSON.stringify(d.payslips)); }
+  if(d.avail) { availData = d.avail; localStorage.setItem('mc_avail', JSON.stringify(d.avail)); }
+
+  renderFbExt();
+  if(!_sbFirstRender) toast("Dữ liệu hệ thống mới được cập nhật!", "ok");
+}).subscribe();
+
+async function saveAvailToSupabase(newAvail) {
+  try {
+    await supabase.from('app_config').update({
+      avail: newAvail
+    }).eq('id', 1);
+    console.log("Sent avail to Supabase");
+  } catch(e) {
+    toast('Lỗi gửi Supabase: '+e.message, 'err');
+  }
 }
 
 function renderFbExt() {
