@@ -1683,15 +1683,14 @@ function renderAiResult(dates, suggestions, submissions) {
   html += '</div></div>';
   html += '<div class="ai-apply-row">';
   html += '<span style="font-size:12px;color:var(--mut)">✅ Được · 🤔 Tùy · ❌ Bận &nbsp;|&nbsp; Click vào ca để áp dụng lịch cho NV đó</span>';
-  html += '<button class="btn bp bs" onclick="applyAllAiSuggestions(this._suggestions)">⚡ Áp Dụng Tất Cả</button>';
+  html += '<button class="btn bp bs" onclick="applyAllAiSuggestions(_lastAiSuggestions)">⚡ Áp Dụng Tất Cả</button>';
   html += '<button class="btn bh bs" onclick="runAiSchedule()">🔄 Tạo lại</button>';
   html += '</div>';
 
   var cont = document.getElementById('aiSchedContent');
   cont.innerHTML = html;
-  // Store suggestions on the button
-  var applyAllBtn = cont.querySelector('.ai-apply-row button');
-  if (applyAllBtn) applyAllBtn._suggestions = JSON.parse(JSON.stringify(suggestions));
+  // Store suggestions in module-level var (survives Firebase re-renders)
+  _lastAiSuggestions = JSON.parse(JSON.stringify(suggestions));
   toast('✅ AI đã tạo gợi ý lịch tuần tới!');
 }
 
@@ -1928,24 +1927,29 @@ function renderAvailSuggestions() {
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────
-function initUI() { checkAdminAuth(); renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); loadEjConfig(); }
+// Chạy UI từ localStorage NGAY LẬP TỨC — không đợi Firebase
+checkAdminAuth(); renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); loadEjConfig(); scheduleEjReminder();
 
 var _isFbFirstLoad = true;
-firebase.initializeApp({
-  apiKey: "AIzaSyAq9oHkYdR6-aNyWMiFeje3oAtDXeho_fE",
-  authDomain: "themuse-quanlyca.firebaseapp.com",
-  projectId: "themuse-quanlyca",
-  storageBucket: "themuse-quanlyca.firebasestorage.app",
-  messagingSenderId: "882841314633",
-  appId: "1:882841314633:web:7e4c208e61ec3348e7a698"
-});
-var db = firebase.firestore();
-
-// 1. Chạy UI cục bộ ngay lập tức (Chế độ Offline-first / Máy chủ rỗng)
-initUI();
-scheduleEjReminder();
+var _lastAiSuggestions = null;
+var db = null;
+try {
+  firebase.initializeApp({
+    apiKey: "AIzaSyAq9oHkYdR6-aNyWMiFeje3oAtDXeho_fE",
+    authDomain: "themuse-quanlyca.firebaseapp.com",
+    projectId: "themuse-quanlyca",
+    storageBucket: "themuse-quanlyca.firebasestorage.app",
+    messagingSenderId: "882841314633",
+    appId: "1:882841314633:web:7e4c208e61ec3348e7a698"
+  });
+  db = firebase.firestore();
+} catch(e) {
+  document.getElementById('fbStatus').textContent = '⚠️ Firebase lỗi: ' + e.message;
+  document.getElementById('fbStatus').style.color = '#c62828';
+}
 
 function saveAllToFb() {
+  if (!db) return;
   db.collection("appData").doc("mainConfig").set({
     employees: JSON.parse(localStorage.getItem('mc_nv')||'[]'),
     schedData: JSON.parse(localStorage.getItem('mc_sched')||'{}'),
@@ -1957,7 +1961,7 @@ function saveAllToFb() {
   }, {merge:true}).catch(function(e){ console.error("Firebase save error:", e); });
 }
 
-db.collection("appData").doc("mainConfig").onSnapshot(function(doc) {
+if (db) db.collection("appData").doc("mainConfig").onSnapshot(function(doc) {
   if (doc.exists) {
     var d = doc.data();
     if(d.employees) { employees = d.employees; localStorage.setItem('mc_nv', JSON.stringify(employees)); }
