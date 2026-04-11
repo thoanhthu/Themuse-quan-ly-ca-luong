@@ -1949,36 +1949,33 @@ if (document.readyState === 'loading') {
 var _sbFirstLoad = true;
 var _lastAiSuggestions = null;
 var supabase = null;
-try {
-  const { createClient } = window.supabase;
-  supabase = createClient(
-    'https://jbidxvzubgvgbjqgawgp.supabase.co',
-    'sb_publishable_cSm047uZZxHRRSmeWwaihw_WTw0O3em'
-  );
-  document.getElementById('fbStatus').textContent = '🟡 Đang kết nối Supabase...';
-} catch(e) {
-  document.getElementById('fbStatus').textContent = '⚠️ Supabase lỗi: ' + e.message;
-  document.getElementById('fbStatus').style.color = '#c62828';
-}
 
-async function saveAllToSupabase() {
-  if (!supabase) return;
+// Wait for Supabase SDK to load
+function initSupabase() {
+  if (!window.supabase) {
+    // SDK not loaded yet, retry in 100ms
+    setTimeout(initSupabase, 100);
+    return;
+  }
+
   try {
-    await supabase.from('app_config').update({
-      employees: JSON.parse(localStorage.getItem('mc_nv')||'[]'),
-      sched_data: JSON.parse(localStorage.getItem('mc_sched')||'{}'),
-      mult_settings: JSON.parse(localStorage.getItem('mc_mult')||'{"t7":1.5,"cn":2,"le":2}'),
-      payslips: JSON.parse(localStorage.getItem('mc_payslip')||'{}'),
-      avail: JSON.parse(localStorage.getItem('mc_avail')||'{}'),
-      admin_config: JSON.parse(localStorage.getItem('mc_admin')||'{}'),
-      emailjs_config: JSON.parse(localStorage.getItem('mc_emailjs')||'{}')
-    }).eq('id', 1);
+    const { createClient } = window.supabase;
+    supabase = createClient(
+      'https://jbidxvzubgvgbjqgawgp.supabase.co',
+      'sb_publishable_cSm047uZZxHRRSmeWwaihw_WTw0O3em'
+    );
+    document.getElementById('fbStatus').textContent = '🟡 Đang kết nối Supabase...';
+    initSupabaseSync();
   } catch(e) {
-    console.error("Supabase save error:", e);
+    document.getElementById('fbStatus').textContent = '⚠️ Supabase lỗi: ' + e.message;
+    document.getElementById('fbStatus').style.color = '#c62828';
   }
 }
 
-if (supabase) {
+// Move sync code to separate function
+function initSupabaseSync() {
+  if (!supabase) return;
+
   // Fetch initial data
   supabase.from('app_config').select('*').eq('id', 1).then(function(res) {
     if (res.data && res.data.length > 0) {
@@ -2020,6 +2017,26 @@ if (supabase) {
     if(!_sbFirstLoad) toast("Dữ liệu đã đồng bộ từ máy chủ!", "ok");
   }).subscribe();
 }
+
+async function saveAllToSupabase() {
+  if (!supabase) return;
+  try {
+    await supabase.from('app_config').update({
+      employees: JSON.parse(localStorage.getItem('mc_nv')||'[]'),
+      sched_data: JSON.parse(localStorage.getItem('mc_sched')||'{}'),
+      mult_settings: JSON.parse(localStorage.getItem('mc_mult')||'{"t7":1.5,"cn":2,"le":2}'),
+      payslips: JSON.parse(localStorage.getItem('mc_payslip')||'{}'),
+      avail: JSON.parse(localStorage.getItem('mc_avail')||'{}'),
+      admin_config: JSON.parse(localStorage.getItem('mc_admin')||'{}'),
+      emailjs_config: JSON.parse(localStorage.getItem('mc_emailjs')||'{}')
+    }).eq('id', 1);
+  } catch(e) {
+    console.error("Supabase save error:", e);
+  }
+}
+
+// Start Supabase initialization
+initSupabase();
 </script>
 
 <!-- ========= ADMIN LOGIN OVERLAY ========= -->

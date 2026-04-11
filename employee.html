@@ -680,12 +680,29 @@ if(sessId){
 <!-- SUPABASE SYNC -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const { createClient } = window.supabase;
-var supabase = createClient(
-  'https://jbidxvzubgvgbjqgawgp.supabase.co',
-  'sb_publishable_cSm047uZZxHRRSmeWwaihw_WTw0O3em'
-);
+var supabase = null;
 var _sbFirstRender = true;
+
+function initSupabaseEmp() {
+  if (!window.supabase) {
+    setTimeout(initSupabaseEmp, 100);
+    return;
+  }
+
+  try {
+    const { createClient } = window.supabase;
+    supabase = createClient(
+      'https://jbidxvzubgvgbjqgawgp.supabase.co',
+      'sb_publishable_cSm047uZZxHRRSmeWwaihw_WTw0O3em'
+    );
+    initSupabaseSyncEmp();
+  } catch(e) {
+    console.error('Supabase init error:', e);
+  }
+}
+
+function initSupabaseSyncEmp() {
+  if (!supabase) return;
 
 // Fetch initial data
 supabase.from('app_config').select('*').eq('id', 1).then(function(res) {
@@ -726,6 +743,9 @@ supabase.on('postgres_changes', {
   renderFbExt();
   if(!_sbFirstRender) toast("Dữ liệu hệ thống mới được cập nhật!", "ok");
 }).subscribe();
+}
+
+initSupabaseEmp();
 
 async function saveAvailToSupabase(newAvail) {
   try {
