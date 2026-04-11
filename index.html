@@ -732,6 +732,8 @@ function loadMultUI() {
   document.getElementById('multLe').value = multSettings.le || 2;
 }
 
+// Wrap all addEventListener in try-catch (DOM might not be ready yet)
+try {
 document.getElementById('saveMultBtn').addEventListener('click', function() {
   multSettings.t7 = parseFloat(document.getElementById('multT7').value) || 1.5;
   multSettings.cn = parseFloat(document.getElementById('multCN').value) || 2;
@@ -1874,6 +1876,9 @@ document.getElementById('saveAdminPwBtn').addEventListener('click',function(){
   document.getElementById('confirmAdminPw').value='';
   toast(pw?'✅ Đã lưu mật khẩu admin!':'✅ Đã xóa mật khẩu admin (không yêu cầu đăng nhập).');
 });
+} catch(e) {
+  console.error('addEventListener init error:', e);
+}
 
 function renderPinStatusList(){
   var cont=document.getElementById('pinStatusList'); if(!cont) return;
