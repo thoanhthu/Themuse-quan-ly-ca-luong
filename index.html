@@ -197,6 +197,8 @@ tbody td{padding:10px 12px;vertical-align:middle}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
 <body>
 
@@ -224,14 +226,10 @@ tbody td{padding:10px 12px;vertical-align:middle}
   </div>
 </header>
 
-<div id="driveBar">
-  <span class="dl">☁️ Google Drive:</span>
-  <span id="driveStatus" style="color:#6b7280">Đang khởi động...</span>
-  <button class="btn bh bs" id="driveConnectBtn" style="display:none" onclick="connectDrive()">🔗 Kết nối</button>
-  <button class="btn bg bs" id="driveSaveBtn" style="display:none" onclick="saveToDrive()">💾 Lưu Drive</button>
-  <button class="btn bh bs" id="driveLoadBtn" style="display:none" onclick="loadFromDrive()">📥 Tải Drive</button>
-  <button class="btn br bs" id="driveDiscBtn" style="display:none" onclick="disconnectDrive()">✖ Ngắt</button>
-  <span id="driveSavedAt" style="font-size:11px;color:#6b7280;margin-left:4px"></span>
+<div id="driveBar" style="background:#e8f5e9;border-bottom:1.5px solid #a5d6a7;padding:7px 24px;display:flex;align-items:center;gap:10px;font-size:12px">
+  <span class="dl" style="color:#2e7d32;font-weight:700">🔥 CSDL Máy Chủ:</span>
+  <span id="fbStatus" style="color:#2e7d32;font-weight:600">Đang kết nối...</span>
+  <span style="font-size:11px;color:#2e7d32;margin-left:auto">Dữ liệu được đồng bộ tự động</span>
 </div>
 
 <div class="tabs" id="tabBar">
@@ -676,6 +674,7 @@ var schedData = JSON.parse(localStorage.getItem('mc_sched') || '{}');
 function saveAll() {
   localStorage.setItem('mc_nv',    JSON.stringify(employees));
   localStorage.setItem('mc_sched', JSON.stringify(schedData));
+  if (typeof saveAllToFb === 'function') saveAllToFb();
 }
 
 // ── UTILS ────────────────────────────────────────────────────────────
@@ -711,6 +710,7 @@ var multSettings = JSON.parse(localStorage.getItem('mc_mult') || '{"t7":1.5,"cn"
 
 function saveMult() {
   localStorage.setItem('mc_mult', JSON.stringify(multSettings));
+  if (typeof saveAllToFb === 'function') saveAllToFb();
 }
 function getMultForShift(loai, dow) {
   // loai: 'thuong' | 'cuoituan' | 'le'
@@ -1397,6 +1397,7 @@ function calcSalary() {
     payslips[pr.nv.id]=payslips[pr.nv.id].slice(0,6);
   }
   localStorage.setItem('mc_payslip',JSON.stringify(payslips));
+  if (typeof saveAllToFb === 'function') saveAllToFb();
   if (!results.length) { document.getElementById('lResult').innerHTML='<div class="card"><div class="cb" style="text-align:center;color:var(--mut)">Không có dữ liệu.</div></div>'; return; }
   var html='<div class="card"><div class="ch"><h2>📊 Bảng Lương &nbsp;'+periodLabel+'</h2><span style="font-size:12px;color:var(--mut)">'+allDates.length+' ngày trong kỳ</span></div><div class="cb">';
   for (var ri=0;ri<results.length;ri++) {
@@ -1735,6 +1736,7 @@ function saveEjConfig() {
   };
   if (!cfg.serviceId || !cfg.templateId || !cfg.publicKey) { toast('Vui lòng điền đủ Service ID, Template ID và Public Key!','err'); return; }
   localStorage.setItem(_ejCfgKey, JSON.stringify(cfg));
+  if (typeof saveAllToFb === 'function') saveAllToFb();
   try { emailjs.init(cfg.publicKey); } catch(e){}
   document.getElementById('ejStatus').textContent = '✅ Đã lưu lúc '+new Date().toLocaleTimeString('vi-VN');
   toast('✅ Đã lưu cài đặt EmailJS!');
@@ -1868,6 +1870,7 @@ document.getElementById('saveAdminPwBtn').addEventListener('click',function(){
   var cfg=JSON.parse(localStorage.getItem('mc_admin')||'{}');
   cfg.pw=encPw(pw);
   localStorage.setItem('mc_admin',JSON.stringify(cfg));
+  if (typeof saveAllToFb === 'function') saveAllToFb();
   document.getElementById('newAdminPw').value='';
   document.getElementById('confirmAdminPw').value='';
   toast(pw?'✅ Đã lưu mật khẩu admin!':'✅ Đã xóa mật khẩu admin (không yêu cầu đăng nhập).');
@@ -1925,8 +1928,62 @@ function renderAvailSuggestions() {
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────
-function init() { checkAdminAuth(); renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); loadEjConfig(); scheduleEjReminder(); }
-init();
+function initUI() { checkAdminAuth(); renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); loadEjConfig(); }
+
+var _isFbFirstLoad = true;
+firebase.initializeApp({
+  apiKey: "AIzaSyAq9oHkYdR6-aNyWMiFeje3oAtDXeho_fE",
+  authDomain: "themuse-quanlyca.firebaseapp.com",
+  projectId: "themuse-quanlyca",
+  storageBucket: "themuse-quanlyca.firebasestorage.app",
+  messagingSenderId: "882841314633",
+  appId: "1:882841314633:web:7e4c208e61ec3348e7a698"
+});
+var db = firebase.firestore();
+
+// 1. Chạy UI cục bộ ngay lập tức (Chế độ Offline-first / Máy chủ rỗng)
+initUI();
+scheduleEjReminder();
+
+function saveAllToFb() {
+  db.collection("appData").doc("mainConfig").set({
+    employees: JSON.parse(localStorage.getItem('mc_nv')||'[]'),
+    schedData: JSON.parse(localStorage.getItem('mc_sched')||'{}'),
+    multSettings: JSON.parse(localStorage.getItem('mc_mult')||'{"t7":1.5,"cn":2,"le":2}'),
+    payslips: JSON.parse(localStorage.getItem('mc_payslip')||'{}'),
+    avail: JSON.parse(localStorage.getItem('mc_avail')||'{}'),
+    admin: JSON.parse(localStorage.getItem('mc_admin')||'{}'),
+    emailjs: JSON.parse(localStorage.getItem('mc_emailjs')||'{}')
+  }, {merge:true}).catch(function(e){ console.error("Firebase save error:", e); });
+}
+
+db.collection("appData").doc("mainConfig").onSnapshot(function(doc) {
+  if (doc.exists) {
+    var d = doc.data();
+    if(d.employees) { employees = d.employees; localStorage.setItem('mc_nv', JSON.stringify(employees)); }
+    if(d.schedData) { schedData = d.schedData; localStorage.setItem('mc_sched', JSON.stringify(schedData)); }
+    if(d.multSettings) { multSettings = d.multSettings; localStorage.setItem('mc_mult', JSON.stringify(multSettings)); }
+    if(d.payslips) localStorage.setItem('mc_payslip', JSON.stringify(d.payslips));
+    if(d.avail) localStorage.setItem('mc_avail', JSON.stringify(d.avail));
+    if(d.admin) localStorage.setItem('mc_admin', JSON.stringify(d.admin));
+    if(d.emailjs) localStorage.setItem('mc_emailjs', JSON.stringify(d.emailjs));
+    
+    // Refresh lại Giao diện khi Dữ liệu máy chủ đổ về
+    renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); loadEjConfig();
+    
+    if(!_isFbFirstLoad) toast("Dữ liệu đã đồng bộ từ máy chủ!", "ok");
+    else { _isFbFirstLoad = false; document.getElementById('fbStatus').textContent='🟢 Đã lấy dữ liệu hệ thống'; }
+  } else {
+    // Nếu chưa có file trên máy chủ thì mạnh dạn tạo bằng dữ liệu hiện tại
+    saveAllToFb();
+    _isFbFirstLoad = false;
+    document.getElementById('fbStatus').textContent='🟢 Đã khởi tạo dữ liệu mây';
+  }
+}, function(err){
+  toast("Lỗi kết nối máy chủ FB: " + err.message, "err");
+  document.getElementById('fbStatus').textContent='🔴 Lỗi kết nối';
+  document.getElementById('fbStatus').style.color='#c62828';
+});
 </script>
 
 <!-- ========= ADMIN LOGIN OVERLAY ========= -->
@@ -1966,95 +2023,6 @@ init();
   </div>
 </div>
 
-<!-- GOOGLE DRIVE -->
-<script>
-var GCLIENT_ID='865817550590-pl0adeocvj2dl7l65cjm0smo53uap10n.apps.googleusercontent.com';
-var GSCOPES='https://www.googleapis.com/auth/drive.file';
-var GFILE_NAME='themuse-caluong-data.json';
-var _gapiReady=false,_gisReady=false,_tokenClient=null,_accessToken=null;
-var _driveFileId=localStorage.getItem('mc_drive_fileid')||null;
 
-function gapiLoaded(){
-  gapi.load('client',function(){
-    gapi.client.init({discoveryDocs:['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']}).then(function(){
-      _gapiReady=true; checkReady();
-    }).catch(function(){ setDS('Lỗi khởi động API','#dc2626'); });
-  });
-}
-function gisLoaded(){
-  _tokenClient=google.accounts.oauth2.initTokenClient({client_id:GCLIENT_ID,scope:GSCOPES,
-    callback:function(resp){
-      if(resp.error){toast('Lỗi kết nối Drive: '+resp.error,'err');return;}
-      _accessToken=resp.access_token; gapi.client.setToken({access_token:_accessToken});
-      setDriveUI(true); toast('✅ Đã kết nối Google Drive!');
-    }
-  });
-  _gisReady=true; checkReady();
-}
-function checkReady(){
-  if(_gapiReady&&_gisReady){ setDS('Chưa kết nối','#6b7280'); document.getElementById('driveConnectBtn').style.display='inline-flex'; }
-}
-function setDS(t,c){ var el=document.getElementById('driveStatus'); el.textContent=t; el.style.color=c||'#6b7280'; }
-function setDriveUI(on){
-  setDS(on?'🟢 Đã kết nối':'⚪ Chưa kết nối',on?'#16a34a':'#6b7280');
-  document.getElementById('driveConnectBtn').style.display=on?'none':'inline-flex';
-  document.getElementById('driveSaveBtn').style.display=on?'inline-flex':'none';
-  document.getElementById('driveLoadBtn').style.display=on?'inline-flex':'none';
-  document.getElementById('driveDiscBtn').style.display=on?'inline-flex':'none';
-}
-function connectDrive(){ if(!_tokenClient){toast('API chưa sẵn sàng...','err');return;} _tokenClient.requestAccessToken({prompt:'consent'}); }
-function disconnectDrive(){
-  if(_accessToken){ google.accounts.oauth2.revoke(_accessToken,function(){}); _accessToken=null; gapi.client.setToken(null); }
-  setDriveUI(false); document.getElementById('driveSavedAt').textContent=''; toast('Đã ngắt kết nối Drive.');
-}
-function saveToDrive(){
-  if(!_accessToken){toast('Chưa kết nối Drive!','err');return;}
-  var content=JSON.stringify({employees:employees,schedData:schedData,savedAt:new Date().toISOString(),version:3},null,2);
-  var doSave;
-  if(_driveFileId){
-    doSave=gapi.client.request({path:'/upload/drive/v3/files/'+_driveFileId,method:'PATCH',params:{uploadType:'media'},headers:{'Content-Type':'application/json'},body:content});
-  } else {
-    var bnd='muse_'+Date.now(); var meta=JSON.stringify({name:GFILE_NAME,mimeType:'application/json'});
-    var body='--'+bnd+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+meta+'\r\n--'+bnd+'\r\nContent-Type: application/json\r\n\r\n'+content+'\r\n--'+bnd+'--';
-    doSave=gapi.client.request({path:'/upload/drive/v3/files',method:'POST',params:{uploadType:'multipart'},headers:{'Content-Type':'multipart/related; boundary='+bnd},body:body});
-  }
-  doSave.then(function(resp){
-    if(!_driveFileId){ _driveFileId=resp.result.id; localStorage.setItem('mc_drive_fileid',_driveFileId); }
-    document.getElementById('driveSavedAt').textContent='— Lưu lúc '+new Date().toLocaleString('vi-VN');
-    toast('✅ Đã lưu lên Google Drive!');
-  }).catch(function(e){
-    var msg=e.result&&e.result.error?e.result.error.message:'Lỗi không xác định';
-    if(msg.indexOf('not found')>-1||msg.indexOf('404')>-1){ _driveFileId=null; localStorage.removeItem('mc_drive_fileid'); toast('File Drive bị xóa, thử lưu lại!','err'); }
-    else toast('Lỗi khi lưu: '+msg,'err');
-  });
-}
-function loadFromDrive(){
-  if(!_accessToken){toast('Chưa kết nối Drive!','err');return;}
-  setDS('⏳ Đang tải...','#6b7280');
-  var doLoad=_driveFileId?Promise.resolve({id:_driveFileId}):
-    gapi.client.drive.files.list({q:'name="'+GFILE_NAME+'" and trashed=false',fields:'files(id,name)',orderBy:'modifiedTime desc',pageSize:1}).then(function(resp){
-      var files=resp.result.files;
-      if(!files||!files.length){toast('Không tìm thấy file trên Drive!','err');setDriveUI(true);return Promise.reject('no_file');}
-      _driveFileId=files[0].id; localStorage.setItem('mc_drive_fileid',_driveFileId); return {id:_driveFileId};
-    });
-  doLoad.then(function(info){
-    return gapi.client.drive.files.get({fileId:info.id,alt:'media'});
-  }).then(function(resp){
-    var data=(typeof resp.result==='object'&&resp.result!==null&&!Array.isArray(resp.result))?resp.result:JSON.parse(resp.body||'{}');
-    if(data.employees) employees=data.employees;
-    if(data.schedData) schedData=data.schedData;
-    saveAll(); renderNV(); renderDashboard();
-    var savedAt=data.savedAt?new Date(data.savedAt).toLocaleString('vi-VN'):'';
-    document.getElementById('driveSavedAt').textContent=savedAt?'— Bản lưu: '+savedAt:'';
-    setDriveUI(true); toast('✅ Đã tải dữ liệu từ Drive!');
-  }).catch(function(e){
-    if(e==='no_file') return;
-    toast('Lỗi khi tải: '+((e.result&&e.result.error)?e.result.error.message:String(e)),'err');
-    setDriveUI(true);
-  });
-}
-</script>
-<script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-<script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 </body>
 </html>
