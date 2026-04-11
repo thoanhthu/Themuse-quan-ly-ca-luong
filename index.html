@@ -2018,24 +2018,29 @@ function initSupabaseSync() {
     document.getElementById('fbStatus').style.color='#c62828';
   });
 
-  // Real-time updates
-  supabase.on('postgres_changes', {
-    event: 'UPDATE',
-    schema: 'public',
-    table: 'app_config'
-  }, function(payload) {
-    var d = payload.new;
-    if(d.employees) { employees = d.employees; localStorage.setItem('mc_nv', JSON.stringify(employees)); }
-    if(d.sched_data) { schedData = d.sched_data; localStorage.setItem('mc_sched', JSON.stringify(schedData)); }
-    if(d.mult_settings) { multSettings = d.mult_settings; localStorage.setItem('mc_mult', JSON.stringify(multSettings)); }
-    if(d.payslips) localStorage.setItem('mc_payslip', JSON.stringify(d.payslips));
-    if(d.avail) localStorage.setItem('mc_avail', JSON.stringify(d.avail));
-    if(d.admin_config) localStorage.setItem('mc_admin', JSON.stringify(d.admin_config));
-    if(d.emailjs_config) localStorage.setItem('mc_emailjs', JSON.stringify(d.emailjs_config));
+  // Real-time updates using channel
+  try {
+    const channel = supabase.channel('app_config_changes');
+    channel.on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'app_config'
+    }, function(payload) {
+      var d = payload.new;
+      if(d.employees) { employees = d.employees; localStorage.setItem('mc_nv', JSON.stringify(employees)); }
+      if(d.sched_data) { schedData = d.sched_data; localStorage.setItem('mc_sched', JSON.stringify(schedData)); }
+      if(d.mult_settings) { multSettings = d.mult_settings; localStorage.setItem('mc_mult', JSON.stringify(multSettings)); }
+      if(d.payslips) localStorage.setItem('mc_payslip', JSON.stringify(d.payslips));
+      if(d.avail) localStorage.setItem('mc_avail', JSON.stringify(d.avail));
+      if(d.admin_config) localStorage.setItem('mc_admin', JSON.stringify(d.admin_config));
+      if(d.emailjs_config) localStorage.setItem('mc_emailjs', JSON.stringify(d.emailjs_config));
 
-    renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); loadEjConfig();
-    if(!_sbFirstLoad) toast("Dữ liệu đã đồng bộ từ máy chủ!", "ok");
-  }).subscribe();
+      renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); loadEjConfig();
+      if(!_sbFirstLoad) toast("Dữ liệu đã đồng bộ từ máy chủ!", "ok");
+    }).subscribe();
+  } catch(e) {
+    console.error('Real-time subscription error:', e);
+  }
 }
 
 async function saveAllToSupabase() {

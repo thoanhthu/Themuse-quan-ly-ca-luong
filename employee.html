@@ -727,22 +727,29 @@ supabase.from('app_config').select('*').eq('id', 1).then(function(res) {
   }
 });
 
-// Real-time updates
-supabase.on('postgres_changes', {
-  event: 'UPDATE',
-  schema: 'public',
-  table: 'app_config'
-}, function(payload) {
-  var d = payload.new;
-  if(d.employees) { employees = d.employees; localStorage.setItem('mc_nv', JSON.stringify(employees)); }
-  if(d.sched_data) { schedData = d.sched_data; localStorage.setItem('mc_sched', JSON.stringify(schedData)); }
-  if(d.mult_settings) { multSettings = d.mult_settings; localStorage.setItem('mc_mult', JSON.stringify(multSettings)); }
-  if(d.payslips) { payslips = d.payslips; localStorage.setItem('mc_payslip', JSON.stringify(d.payslips)); }
-  if(d.avail) { availData = d.avail; localStorage.setItem('mc_avail', JSON.stringify(d.avail)); }
+// Real-time updates using channel
+if (supabase) {
+  try {
+    const channel = supabase.channel('app_config_changes_emp');
+    channel.on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'app_config'
+    }, function(payload) {
+      var d = payload.new;
+      if(d.employees) { employees = d.employees; localStorage.setItem('mc_nv', JSON.stringify(employees)); }
+      if(d.sched_data) { schedData = d.sched_data; localStorage.setItem('mc_sched', JSON.stringify(schedData)); }
+      if(d.mult_settings) { multSettings = d.mult_settings; localStorage.setItem('mc_mult', JSON.stringify(multSettings)); }
+      if(d.payslips) { payslips = d.payslips; localStorage.setItem('mc_payslip', JSON.stringify(d.payslips)); }
+      if(d.avail) { availData = d.avail; localStorage.setItem('mc_avail', JSON.stringify(d.avail)); }
 
-  renderFbExt();
-  if(!_sbFirstRender) toast("Dữ liệu hệ thống mới được cập nhật!", "ok");
-}).subscribe();
+      renderFbExt();
+      if(!_sbFirstRender) toast("Dữ liệu hệ thống mới được cập nhật!", "ok");
+    }).subscribe();
+  } catch(e) {
+    console.error('Real-time subscription error:', e);
+  }
+}
 }
 
 initSupabaseEmp();
