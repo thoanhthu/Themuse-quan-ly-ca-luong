@@ -422,7 +422,7 @@ tbody td{padding:10px 12px;vertical-align:middle}
             <option value="part">Bán thời gian</option>
           </select>
         </div>
-        <div class="fg"><label>Lương/Giờ (đ) *</label><input id="nvLuong" type="number" min="0" placeholder="VD: 30000" /></div>
+        <div class="fg"><label id="nvLuongLbl">Lương/Giờ (đ) *</label><input id="nvLuong" type="number" min="0" placeholder="VD: 30000" /><span id="nvLuongHint" style="font-size:10px;color:var(--mut);margin-top:2px;display:block"></span></div>
       </div>
       <div class="g3">
         <div class="fg"><label>Chức Vụ</label><input id="nvCv" placeholder="VD: Nhân viên bán hàng" /></div>
@@ -473,7 +473,13 @@ tbody td{padding:10px 12px;vertical-align:middle}
       </div>
       <!-- Ca định sẵn riêng -->
       <div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--bdr)">
-        <div style="font-size:12px;font-weight:700;color:var(--acc);margin-bottom:10px;display:flex;align-items:center;gap:6px">⏰ CA ĐỊNH SẴN RIÊNG <span style="font-size:11px;font-weight:400;color:var(--mut)">(sẽ hiện trong modal chọn ca của nhân viên này)</span></div>
+        <div style="font-size:12px;font-weight:700;color:var(--acc);margin-bottom:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          ⏰ CA ĐỊNH SẴN RIÊNG <span style="font-size:11px;font-weight:400;color:var(--mut)">(sẽ hiện trong modal chọn ca của nhân viên này)</span>
+          <label style="margin-left:auto;display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;font-weight:600;color:var(--mut);background:#fff3e0;border:1.5px solid #ffd580;border-radius:20px;padding:3px 10px">
+            <input type="checkbox" id="nvHideDefPresets" style="accent-color:var(--pri)" />
+            Ẩn ca mặc định (Store/Xưởng)
+          </label>
+        </div>
         <div id="nvPresetList" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;min-height:26px"></div>
         <div class="g4" style="margin-bottom:8px">
           <div class="fg"><label>Tên ca</label><input id="npLabel" placeholder="VD: Ca sáng đặc biệt" /></div>
@@ -502,7 +508,7 @@ tbody td{padding:10px 12px;vertical-align:middle}
     <div class="cb" style="padding:0">
       <div class="tw">
         <table>
-          <thead><tr><th>#</th><th>Họ & Tên</th><th>Địa Điểm</th><th>Loại</th><th>Lương/Giờ</th><th>Chức Vụ</th><th>SĐT</th><th>Email</th><th>Ngân Hàng</th><th>Thao Tác</th></tr></thead>
+          <thead><tr><th>#</th><th>Họ & Tên</th><th>Địa Điểm</th><th>Loại</th><th>Lương</th><th>Chức Vụ</th><th>SĐT</th><th>Email</th><th>Ngân Hàng</th><th>Thao Tác</th></tr></thead>
           <tbody id="nvBody"></tbody>
         </table>
       </div>
@@ -773,6 +779,24 @@ function confirmDel(msg, cb) { document.getElementById('delMsg').textContent = m
 document.getElementById('nvSaveBtn').addEventListener('click', saveNV);
 document.getElementById('nvClearBtn').addEventListener('click', clearNVForm);
 
+function updateLuongLabel() {
+  var loai = document.getElementById('nvLoai').value;
+  var lbl = document.getElementById('nvLuongLbl');
+  var hint = document.getElementById('nvLuongHint');
+  var inp = document.getElementById('nvLuong');
+  if (loai === 'full') {
+    lbl.textContent = 'Lương Tháng (đ) *';
+    inp.placeholder = 'VD: 5000000';
+    hint.textContent = 'Lương cố định/tháng — mỗi ngày = luong÷26, nhân hệ số cuối tuần/lễ';
+  } else {
+    lbl.textContent = 'Lương/Giờ (đ) *';
+    inp.placeholder = 'VD: 30000';
+    hint.textContent = 'Lương theo giờ thực tế làm';
+  }
+}
+document.getElementById('nvLoai').addEventListener('change', updateLuongLabel);
+updateLuongLabel();
+
 function saveNV() {
   var ten   = document.getElementById('nvTen').value.trim();
   var dd    = document.getElementById('nvDd').value;
@@ -787,9 +811,10 @@ function saveNV() {
   var bankName = document.getElementById('nvBankName').value.trim().toUpperCase();
   var pinNew   = document.getElementById('nvPin').value.trim();
   var pinConf  = document.getElementById('nvPinConfirm').value.trim();
+  var hideDefPresets = document.getElementById('nvHideDefPresets').checked;
   var eid      = document.getElementById('nvId').value;
   if (!ten) { toast('Vui lòng nhập họ tên!','err'); return; }
-  if (isNaN(luong)||luong<=0) { toast('Vui lòng nhập lương/giờ hợp lệ!','err'); return; }
+  if (isNaN(luong)||luong<=0) { toast('Vui lòng nhập mức lương hợp lệ!','err'); return; }
   if (pinNew && pinNew!==pinConf) { toast('PIN xác nhận không khớp!','err'); return; }
   if (pinNew && (pinNew.length<4||isNaN(pinNew))) { toast('PIN phải là 4–6 chữ số!','err'); return; }
   // Determine final PIN: if new PIN entered → encode; if blank → keep existing; if editing and blank → clear
@@ -798,11 +823,11 @@ function saveNV() {
   else if (eid) { var existNv=employees.find(function(e){ return e.id===eid; }); finalPin=existNv?existNv.pin||'':''; }
   if (eid) {
     for (var i=0;i<employees.length;i++) {
-      if (employees[i].id===eid) { employees[i]={id:eid,ten:ten,dd:dd,loai:loai,luong:luong,cv:cv,sdt:sdt,email:email,gc:gc,bank:bank,bankAcc:bankAcc,bankName:bankName,pin:finalPin,customPresets:JSON.parse(JSON.stringify(_nvPresets))}; break; }
+      if (employees[i].id===eid) { employees[i]={id:eid,ten:ten,dd:dd,loai:loai,luong:luong,cv:cv,sdt:sdt,email:email,gc:gc,bank:bank,bankAcc:bankAcc,bankName:bankName,pin:finalPin,hideDefPresets:hideDefPresets,customPresets:JSON.parse(JSON.stringify(_nvPresets))}; break; }
     }
     toast('✅ Đã cập nhật nhân viên!');
   } else {
-    employees.push({id:uid(),ten:ten,dd:dd,loai:loai,luong:luong,cv:cv,sdt:sdt,email:email,gc:gc,bank:bank,bankAcc:bankAcc,bankName:bankName,pin:finalPin,customPresets:JSON.parse(JSON.stringify(_nvPresets))});
+    employees.push({id:uid(),ten:ten,dd:dd,loai:loai,luong:luong,cv:cv,sdt:sdt,email:email,gc:gc,bank:bank,bankAcc:bankAcc,bankName:bankName,pin:finalPin,hideDefPresets:hideDefPresets,customPresets:JSON.parse(JSON.stringify(_nvPresets))});
     toast('✅ Đã thêm nhân viên!');
   }
   saveAll(); clearNVForm(); renderNV(); renderPinStatusList();
@@ -814,6 +839,7 @@ function editNV(id) {
   document.getElementById('nvLoai').value=nv.loai; document.getElementById('nvLuong').value=nv.luong;
   document.getElementById('nvCv').value=nv.cv||''; document.getElementById('nvSdt').value=nv.sdt||'';
   document.getElementById('nvEmail').value=nv.email||'';
+  document.getElementById('nvHideDefPresets').checked=!!nv.hideDefPresets;
   document.getElementById('nvGc').value=nv.gc||''; document.getElementById('nvId').value=id;
   document.getElementById('nvBank').value=nv.bank||'';
   document.getElementById('nvBankAcc').value=nv.bankAcc||'';
@@ -823,6 +849,7 @@ function editNV(id) {
   _nvPresets=nv.customPresets?JSON.parse(JSON.stringify(nv.customPresets)):[];
   renderNvPresetList();
   document.getElementById('nvTitle').textContent='✏️ Chỉnh Sửa Nhân Viên';
+  updateLuongLabel();
   window.scrollTo(0,0);
 }
 function deleteNV(id) {
@@ -834,6 +861,7 @@ function deleteNV(id) {
 }
 function clearNVForm() {
   ['nvTen','nvCv','nvSdt','nvEmail','nvGc','nvId','nvBankAcc','nvBankName','nvPin','nvPinConfirm'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('nvHideDefPresets').checked=false;
   document.getElementById('nvBank').value='';
   document.getElementById('nvLuong').value='';
   document.getElementById('nvDd').value='store'; document.getElementById('nvLoai').value='full';
@@ -896,7 +924,7 @@ function renderNV() {
       '<td><strong>'+nv.ten+'</strong></td>'+
       '<td><span class="bdg '+(nv.dd==='store'?'bs2':'bx')+'">'+(nv.dd==='store'?'🏪 Store':'🏭 Xưởng')+'</span></td>'+
       '<td><span class="bdg '+(nv.loai==='full'?'bf':'bpt')+'">'+(nv.loai==='full'?'Toàn thời gian':'Bán thời gian')+'</span></td>'+
-      '<td><strong>'+fmtM(nv.luong)+'</strong>/giờ</td>'+
+      '<td><strong>'+fmtM(nv.luong)+'</strong>'+(nv.loai==='full'?'/tháng <span style="font-size:10px;color:var(--mut)">('+fmtM(Math.round(nv.luong/26))+'/ngày)</span>':'/giờ')+'</td>'+
       '<td>'+(nv.cv||'<span style="color:#ccc">—</span>')+'</td>'+
       '<td>'+(nv.sdt||'<span style="color:#ccc">—</span>')+'</td>'+
       '<td>'+(nv.email?'<span style="font-size:11px;color:#1565c0">📧 '+nv.email+'</span>':'<span style="color:#ccc">—</span>')+'</td>'+
@@ -972,7 +1000,7 @@ function renderSched() {
   html+='<th class="ths">Tổng Tuần</th></tr></thead><tbody>';
   for (var ni=0;ni<employees.length;ni++) {
     var nv=employees[ni]; var weekHrs=0; var weekDays=0; var weekCosts=0;
-    html+='<tr><td class="tdnv">'+nv.ten+'<span class="nl">'+(nv.dd==='store'?'🏪 Store':'🏭 Xưởng')+' · '+(nv.loai==='full'?'Full':'Part')+'</span><span class="nr">'+fmtM(nv.luong)+'/giờ</span></td>';
+    html+='<tr><td class="tdnv">'+nv.ten+'<span class="nl">'+(nv.dd==='store'?'🏪 Store':'🏭 Xưởng')+' · '+(nv.loai==='full'?'Full':'Part')+'</span><span class="nr">'+fmtM(nv.luong)+(nv.loai==='full'?'/tháng':'/giờ')+'</span></td>';
     for (var di2=0;di2<dates.length;di2++) {
       var dt=dates[di2]; var iso2=toISO(dt); var key=schedKey(nv.id,iso2); var s=schedData[key];
       var cls=getShiftCls(s); var inner=''; var hasCost=s&&s.costs&&s.costs.length>0; var tc=totalCosts(s);
@@ -1023,17 +1051,25 @@ function openShiftModal(nvId,dateStr,dd) {
   document.getElementById('smLoai').value=s&&s.loai?s.loai:(dtObj.getDay()===0||dtObj.getDay()===6?'cuoituan':'thuong');
   document.getElementById('smGc').value=s&&s.gc?s.gc:'';
   _modalCosts=s&&s.costs?JSON.parse(JSON.stringify(s.costs)):[];
-  var pArr=PRESETS[dd]||PRESETS.store; var ph='';
-  for (var i=0;i<pArr.length;i++) { var p=pArr[i]; ph+='<button class="pbtn" data-bd="'+p.bd+'" data-kt="'+p.kt+'" data-loai="'+p.loai+'">'+p.label+'</button>'; }
-  // Custom presets for this employee
+  var ph='';
+  // Custom presets for this employee — always show FIRST
   var custPresets = nv&&nv.customPresets&&nv.customPresets.length?nv.customPresets:[];
   if (custPresets.length) {
-    ph+='<span style="width:100%;display:block;font-size:10px;font-weight:700;color:var(--prd);text-transform:uppercase;letter-spacing:.5px;margin-top:4px;margin-bottom:2px">⭐ Ca riêng của '+nv.ten+'</span>';
+    ph+='<span style="width:100%;display:block;font-size:10px;font-weight:700;color:var(--prd);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">⭐ Ca riêng của '+nv.ten+'</span>';
     for (var ci=0;ci<custPresets.length;ci++) {
       var cp=custPresets[ci];
       var loaiAttr=cp.loai?cp.loai:'';
-      ph+='<button class="pbtn" style="border-color:var(--pri);background:var(--prl)" data-bd="'+cp.bd+'" data-kt="'+cp.kt+'" data-loai="'+loaiAttr+'">'+cp.label+'</button>';
+      ph+='<button class="pbtn" style="border-color:var(--pri);background:var(--prl);font-weight:700" data-bd="'+cp.bd+'" data-kt="'+cp.kt+'" data-loai="'+loaiAttr+'">'+cp.label+'</button>';
     }
+    ph+='<span style="width:100%;display:block"></span>'; // line break
+  }
+  // Default location presets — only show if not hidden
+  if (!nv||!nv.hideDefPresets) {
+    var pArr=PRESETS[dd]||PRESETS.store;
+    if (custPresets.length) ph+='<span style="width:100%;display:block;font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Ca mặc định '+(dd==='store'?'Store':'Xưởng')+'</span>';
+    for (var i=0;i<pArr.length;i++) { var p=pArr[i]; ph+='<button class="pbtn" data-bd="'+p.bd+'" data-kt="'+p.kt+'" data-loai="'+p.loai+'">'+p.label+'</button>'; }
+  } else if (!custPresets.length) {
+    ph+='<span style="font-size:11px;color:var(--mut);font-style:italic">Ca mặc định đã ẩn — hãy thêm ca riêng cho nhân viên này</span>';
   }
   ph+='<button class="pbtn offp" id="smOffBtn">🔴 OFF</button>';
   document.getElementById('smPresets').innerHTML=ph;
@@ -1081,6 +1117,15 @@ document.getElementById('smAddCost').addEventListener('click', function() {
   renderModalCosts(); toast('Đã thêm chi phí!');
 });
 
+function calcDayPay(nv, hrs, mult) {
+  if (!nv) return 0;
+  if (nv.loai==='full') {
+    // Full-time: daily_rate = luong/26; pay = daily_rate × mult
+    var daily = nv.luong / 26;
+    return daily * mult;
+  }
+  return hrs * mult * nv.luong; // Part-time: hourly
+}
 function updateCalc() {
   var bd=document.getElementById('smBd').value; var kt=document.getElementById('smKt').value;
   var loai=document.getElementById('smLoai').value; var div=document.getElementById('smCalc');
@@ -1088,9 +1133,13 @@ function updateCalc() {
     var hrs=calcHrs(bd,kt);
     var smParts=_smDate.split('-'); var smDow=new Date(parseInt(smParts[0]),parseInt(smParts[1])-1,parseInt(smParts[2])).getDay();
     var mult=getMultForShift(loai,smDow);
-    var nv=employees.find(function(e){ return e.id===_smNv; }); var pay=nv?hrs*mult*nv.luong:0;
+    var nv=employees.find(function(e){ return e.id===_smNv; }); var pay=calcDayPay(nv,hrs,mult);
     div.style.display='block';
-    div.innerHTML='⏱ <strong>'+hrs+'h</strong> × '+mult+' = <strong>'+Math.round(hrs*mult*10)/10+'h</strong>&nbsp;&nbsp;→&nbsp;&nbsp;💰 <strong>'+fmtM(pay)+'</strong>';
+    if (nv&&nv.loai==='full') {
+      div.innerHTML='📅 Ngày (full-time) × '+mult+' = <strong>'+fmtM(Math.round(pay))+'</strong> <span style="font-size:11px;color:var(--mut)">('+fmtM(Math.round(nv.luong/26))+'/ngày × ×'+mult+')</span>';
+    } else {
+      div.innerHTML='⏱ <strong>'+hrs+'h</strong> × '+mult+' = <strong>'+Math.round(hrs*mult*10)/10+'h</strong>&nbsp;&nbsp;→&nbsp;&nbsp;💰 <strong>'+fmtM(pay)+'</strong>';
+    }
   } else { div.style.display='none'; }
 }
 document.getElementById('smBd').addEventListener('input', updateCalc);
@@ -1214,7 +1263,9 @@ function renderDashboard() {
       if (s.bd&&s.kt) {
         var dObj2=new Date(parseInt(dateStr.split('-')[0]),parseInt(dateStr.split('-')[1])-1,parseInt(dateStr.split('-')[2]));
         var hrs=calcHrs(s.bd,s.kt); var mult=getMultForShift(s.loai,dObj2.getDay());
-        tDays++; tHrs+=hrs*mult; tLcb+=hrs*mult*nv.luong;
+        var lcb2=calcDayPay(nv,hrs,mult);
+        var hrsEq2=nv.loai==='full'?mult:hrs*mult;
+        tDays++; tHrs+=hrsEq2; tLcb+=lcb2;
       }
       if (s.costs&&s.costs.length) {
         for (var ci=0;ci<s.costs.length;ci++) {
@@ -1319,8 +1370,9 @@ function calcSalary() {
       if (!s||s.isOff||!s.bd||!s.kt) continue;
       var dsParts=dateStr.split('-'); var dsDow=new Date(parseInt(dsParts[0]),parseInt(dsParts[1])-1,parseInt(dsParts[2])).getDay();
       var hrs=calcHrs(s.bd,s.kt); var mult=getMultForShift(s.loai,dsDow);
-      var lcb=hrs*mult*nv.luong; var cps=totalCosts(s);
-      tHrs+=hrs*mult; tDays++; tLcb+=lcb; tCps+=cps;
+      var lcb=calcDayPay(nv,hrs,mult); var cps=totalCosts(s);
+      var hrsEq=nv.loai==='full'?mult:hrs*mult; // for full-time, equiv hrs = mult (day × coeff)
+      tHrs+=hrsEq; tDays++; tLcb+=lcb; tCps+=cps;
       detail.push({dateStr:dateStr,bd:s.bd,kt:s.kt,hrs:hrs,mult:mult,lcb:lcb,cps:cps,gc:s.gc||'',costs:s.costs||[]});
     }
     results.push({nv:nv,tHrs:Math.round(tHrs*10)/10,tDays:tDays,tLcb:tLcb,tCps:tCps,tTotal:tLcb+tCps,detail:detail});
@@ -1353,7 +1405,7 @@ function calcSalary() {
       '<div class="pcn">👤 '+r.nv.ten+
         ' <span class="bdg '+(r.nv.dd==='store'?'bs2':'bx')+'">'+(r.nv.dd==='store'?'🏪 Store':'🏭 Xưởng')+'</span>'+
         ' <span class="bdg '+(r.nv.loai==='full'?'bf':'bpt')+'">'+(r.nv.loai==='full'?'Full-time':'Part-time')+'</span>'+
-        ' <span style="font-size:11px;color:var(--mut);font-weight:400">'+fmtM(r.nv.luong)+'/giờ</span></div>'+
+        ' <span style="font-size:11px;color:var(--mut);font-weight:400">'+fmtM(r.nv.luong)+(r.nv.loai==='full'?'/tháng':'/giờ')+'</span></div>'+
       '<div class="pgrid">'+
         '<div class="pi"><div class="piv">'+r.tDays+'</div><div class="pil">Ngày có ca</div></div>'+
         '<div class="pi"><div class="piv">'+r.tHrs+'h</div><div class="pil">Giờ quy đổi</div></div>'+
@@ -1376,11 +1428,14 @@ function calcSalary() {
             costStr+='<span class="'+(COST_CLS[c3.type]||'tag-k')+'">'+fmtM(c3.amount)+'</span> ';
           }
         }
+        var isFullNv = r.nv.loai==='full';
+        var hrsCol = isFullNv ? ('1 ngày × '+multLbl) : (det.hrs+'h × '+multLbl);
+        var eqCol  = isFullNv ? (fmtM(Math.round(r.nv.luong/26))+' × '+det.mult) : (Math.round(det.hrs*det.mult*10)/10+'h');
         html+='<tr>'+
           '<td>'+VI_DAYS[dObj.getDay()]+' '+String(parseInt(dp[2])).padStart(2,'0')+'/'+String(parseInt(dp[1])).padStart(2,'0')+'</td>'+
           '<td>'+det.bd+'–'+det.kt+'</td>'+
-          '<td>'+det.hrs+'h × '+multLbl+'</td>'+
-          '<td>'+Math.round(det.hrs*det.mult*10)/10+'h</td>'+
+          '<td>'+hrsCol+'</td>'+
+          '<td>'+eqCol+'</td>'+
           '<td><strong>'+fmtM(det.lcb)+'</strong></td>'+
           '<td>'+(costStr||'<span style="color:#ccc">—</span>')+'</td>'+
           '<td style="color:var(--mut);font-style:italic">'+(det.gc||'—')+'</td>'+
@@ -1471,7 +1526,7 @@ document.getElementById('exportXlsxBtn').addEventListener('click', function() {
 
   // Sheet 1: Tổng hợp
   var wsData = [['BẢNG LƯƠNG — THE MUSE CANDLE'], ['Kỳ: ' + period], []];
-  wsData.push(['STT','Họ & Tên','Địa Điểm','Loại','Lương/Giờ','Ngày Công','Giờ Quy Đổi','Lương Cơ Bản','Chi Phí PS','TỔNG NHẬN','Ngân Hàng','Số TK','Chủ TK']);
+  wsData.push(['STT','Họ & Tên','Địa Điểm','Loại','Lương (tháng/giờ)','Ngày Công','Giờ/Ngày Quy Đổi','Lương Cơ Bản','Chi Phí PS','TỔNG NHẬN','Ngân Hàng','Số TK','Chủ TK']);
   var totDays=0,totHrs=0,totLcb=0,totCps=0,totAll=0;
   var detailRows = [['CHI TIẾT TỪNG CA'],['Nhân Viên','Ngày','Thứ','Ca Làm','Số Giờ','Hệ Số','Giờ QĐ','Lương CB','Chi Phí PS','Ghi Chú']];
   var stt=0;
@@ -1482,13 +1537,15 @@ document.getElementById('exportXlsxBtn').addEventListener('click', function() {
       if (!s||s.isOff||!s.bd||!s.kt) continue;
       var dsParts=dateStr.split('-'); var dsDow=new Date(parseInt(dsParts[0]),parseInt(dsParts[1])-1,parseInt(dsParts[2])).getDay();
       var hrs=calcHrs(s.bd,s.kt); var mult=getMultForShift(s.loai,dsDow);
-      var lcb=hrs*mult*nv.luong; var cps=totalCosts(s);
-      tHrs+=hrs*mult; tDays++; tLcb+=lcb; tCps+=cps;
-      detailRows.push([nv.ten, dateStr, VI_FULL[dsDow], s.bd+'–'+s.kt, hrs, mult, Math.round(hrs*mult*10)/10, Math.round(lcb), Math.round(cps), s.gc||'']);
+      var lcb=calcDayPay(nv,hrs,mult); var cps=totalCosts(s);
+      var hrsEqX=nv.loai==='full'?mult:hrs*mult;
+      tHrs+=hrsEqX; tDays++; tLcb+=lcb; tCps+=cps;
+      detailRows.push([nv.ten, dateStr, VI_FULL[dsDow], s.bd+'–'+s.kt, hrs, mult, nv.loai==='full'?('Ngày×'+mult):Math.round(hrs*mult*10)/10, Math.round(lcb), Math.round(cps), s.gc||'']);
     }
     if (tDays===0) continue; stt++;
     totDays+=tDays; totHrs+=tHrs; totLcb+=tLcb; totCps+=tCps; totAll+=tLcb+tCps;
-    wsData.push([stt,nv.ten,nv.dd==='store'?'Store':'Xưởng',nv.loai==='full'?'Full-time':'Part-time',nv.luong,tDays,Math.round(tHrs*10)/10,Math.round(tLcb),Math.round(tCps),Math.round(tLcb+tCps),nv.bank||'',nv.bankAcc||'',nv.bankName||'']);
+    var luongLabel=nv.loai==='full'?nv.luong+' (tháng)':nv.luong+' (giờ)';
+    wsData.push([stt,nv.ten,nv.dd==='store'?'Store':'Xưởng',nv.loai==='full'?'Full-time':'Part-time',luongLabel,tDays,Math.round(tHrs*10)/10,Math.round(tLcb),Math.round(tCps),Math.round(tLcb+tCps),nv.bank||'',nv.bankAcc||'',nv.bankName||'']);
   }
   wsData.push([]); wsData.push(['','','','','TỔNG CỘNG',totDays,Math.round(totHrs*10)/10,Math.round(totLcb),Math.round(totCps),Math.round(totAll)]);
 
@@ -1605,7 +1662,7 @@ function renderAiResult(dates, suggestions, submissions) {
       } else {
         var hrs = calcHrs(sg.bd, sg.kt);
         var mult = getMultForShift(sg.loai, dow);
-        var pay = hrs*mult*nv.luong;
+        var pay = calcDayPay(nv, hrs, mult);
         var statusIcon = status==='on'?'✅':status==='maybe'?'🤔':'📋';
         html += '<div class="ai-slot '+(status==='on'?'assigned':'maybe')+'" '+
           'title="'+nv.ten+': '+sg.bd+'–'+sg.kt+' · '+fmtM(pay)+'" '+
