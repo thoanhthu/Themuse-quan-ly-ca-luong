@@ -184,7 +184,19 @@ tbody td{padding:10px 12px;vertical-align:middle}
 .fbar{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px}
 .fbar .fg{min-width:140px}
 @media print{header,.tabs,.wnav,.ch .btn,.btn,.rbtns,.fbar,#driveBar{display:none!important}.card{box-shadow:none}body{background:#fff}}
+/* AI Schedule */
+.ai-day-col{min-width:110px;border:1px solid var(--bdr);border-radius:8px;background:var(--bg);padding:8px}
+.ai-day-col .ai-date{font-size:11px;font-weight:700;color:var(--acc);margin-bottom:6px;text-align:center}
+.ai-slot{border-radius:6px;padding:5px 7px;font-size:11px;font-weight:600;margin-bottom:4px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:filter .15s}
+.ai-slot:hover{filter:brightness(.94)}
+.ai-slot.avail{background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7}
+.ai-slot.busy{background:#ffebee;color:#c62828;border:1px solid #ffcdd2;opacity:.5}
+.ai-slot.maybe{background:#fff8e1;color:#9a6900;border:1px solid #ffe082}
+.ai-slot.assigned{background:#e3f2fd;color:#1565c0;border:1px solid #90caf9}
+.ai-apply-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px dashed var(--bdr)}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 </head>
 <body>
 
@@ -302,6 +314,37 @@ tbody td{padding:10px 12px;vertical-align:middle}
     </div>
   </div>
 
+  <!-- EmailJS Config -->
+  <div class="card">
+    <div class="ch">
+      <h2>🔔 Cài Đặt Nhắc Ca Qua Email (EmailJS)</h2>
+      <span style="font-size:11px;color:var(--mut)">Gửi email nhắc nhở ca làm tự động cho nhân viên</span>
+    </div>
+    <div class="cb">
+      <div style="background:#fff8e1;border:1.5px solid #ffe082;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#7a5c00;line-height:1.6">
+        <strong>📋 Hướng dẫn setup:</strong> Đăng ký tài khoản miễn phí tại <a href="https://www.emailjs.com" target="_blank" style="color:#c8956c;font-weight:700">emailjs.com</a> → Tạo Email Service → Tạo Email Template → Copy 3 key dưới đây vào.<br>
+        <span style="margin-top:4px;display:block">Template cần có các biến: <code style="background:#fffde7;padding:1px 4px;border-radius:3px">{{to_name}}</code> <code style="background:#fffde7;padding:1px 4px;border-radius:3px">{{shift_date}}</code> <code style="background:#fffde7;padding:1px 4px;border-radius:3px">{{shift_time}}</code> <code style="background:#fffde7;padding:1px 4px;border-radius:3px">{{workplace}}</code></span>
+      </div>
+      <div class="g3" style="margin-bottom:12px">
+        <div class="fg"><label>Service ID</label><input id="ejServiceId" placeholder="VD: service_abc123" /></div>
+        <div class="fg"><label>Template ID</label><input id="ejTemplateId" placeholder="VD: template_xyz789" /></div>
+        <div class="fg"><label>Public Key (User ID)</label><input id="ejPublicKey" placeholder="VD: aBcDeFgHiJkLm" /></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600">
+          <input type="checkbox" id="ejEnabled" style="width:16px;height:16px;accent-color:var(--pri)" />
+          Bật tự động gửi email nhắc ca (mỗi ngày lúc 8h sáng, nhắc ca hôm nay và ngày mai)
+        </label>
+      </div>
+      <div class="rbtns">
+        <button class="btn bp bs" id="ejSaveBtn">💾 Lưu Cài Đặt Email</button>
+        <button class="btn ba bs" id="ejTestBtn">📧 Gửi Test Email</button>
+        <button class="btn bg bs" id="ejSendNowBtn">🔔 Gửi Nhắc Ngay</button>
+        <span id="ejStatus" style="font-size:12px;color:var(--mut);align-self:center"></span>
+      </div>
+    </div>
+  </div>
+
   <!-- Lịch tháng quick-add -->
   <div class="card">
     <div class="ch">
@@ -384,6 +427,7 @@ tbody td{padding:10px 12px;vertical-align:middle}
       <div class="g3">
         <div class="fg"><label>Chức Vụ</label><input id="nvCv" placeholder="VD: Nhân viên bán hàng" /></div>
         <div class="fg"><label>Số Điện Thoại</label><input id="nvSdt" placeholder="VD: 0901 234 567" /></div>
+        <div class="fg"><label>Email (nhận nhắc ca)</label><input id="nvEmail" type="email" placeholder="VD: nhanvien@gmail.com" /></div>
         <div class="fg"><label>Ghi Chú</label><input id="nvGc" placeholder="Thông tin thêm..." /></div>
       </div>
       <div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--bdr)">
@@ -458,7 +502,7 @@ tbody td{padding:10px 12px;vertical-align:middle}
     <div class="cb" style="padding:0">
       <div class="tw">
         <table>
-          <thead><tr><th>#</th><th>Họ & Tên</th><th>Địa Điểm</th><th>Loại</th><th>Lương/Giờ</th><th>Chức Vụ</th><th>SĐT</th><th>Ngân Hàng</th><th>Thao Tác</th></tr></thead>
+          <thead><tr><th>#</th><th>Họ & Tên</th><th>Địa Điểm</th><th>Loại</th><th>Lương/Giờ</th><th>Chức Vụ</th><th>SĐT</th><th>Email</th><th>Ngân Hàng</th><th>Thao Tác</th></tr></thead>
           <tbody id="nvBody"></tbody>
         </table>
       </div>
@@ -468,6 +512,22 @@ tbody td{padding:10px 12px;vertical-align:middle}
 
 <!-- ===================== LỊCH TUẦN ===================== -->
 <div class="pane" id="pane-lich">
+  <!-- AI gợi ý lịch -->
+  <div class="card" id="aiSchedCard">
+    <div class="ch">
+      <h2>🤖 AI Gợi Ý Lịch Tuần Tới</h2>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--mut)" id="aiNextWkLbl">—</span>
+        <button class="btn bp bs" id="genAiSchedBtn">✨ Tạo Gợi Ý</button>
+      </div>
+    </div>
+    <div class="cb" id="aiSchedContent">
+      <div style="text-align:center;padding:20px;color:var(--mut);font-size:13px">
+        Nhấn <strong>✨ Tạo Gợi Ý</strong> để AI tự động sắp xếp ca dựa trên đăng ký lịch của nhân viên.
+      </div>
+    </div>
+  </div>
+
   <!-- Đăng ký lịch từ nhân viên -->
   <div class="card" id="availCard" style="display:none">
     <div class="ch">
@@ -514,6 +574,7 @@ tbody td{padding:10px 12px;vertical-align:middle}
         <button class="btn bg" id="calcBtn">🧮 Tính Lương</button>
         <button class="btn bh" id="thisMonthBtn">📆 Tháng này</button>
         <button class="btn bh" id="printSalBtn">🖨️ In Bảng Lương</button>
+        <button class="btn" id="exportXlsxBtn" style="background:#1d6f42;color:#fff">📊 Xuất Excel</button>
       </div>
     </div>
   </div>
@@ -692,7 +753,7 @@ document.getElementById('tabBar').addEventListener('click', function(e) {
   document.querySelectorAll('.pane').forEach(function(p){ p.classList.remove('active'); });
   btn.classList.add('active');
   document.getElementById('pane-' + tab).classList.add('active');
-  if (tab === 'lich')  { renderSched(); renderAvailSuggestions(); }
+  if (tab === 'lich')  { renderSched(); renderAvailSuggestions(); initAiSchedLabel(); }
   if (tab === 'luong') { populateLSel(); setThisMonth(); }
   if (tab === 'db')    renderDashboard();
 });
@@ -719,6 +780,7 @@ function saveNV() {
   var luong = parseFloat(document.getElementById('nvLuong').value);
   var cv       = document.getElementById('nvCv').value.trim();
   var sdt      = document.getElementById('nvSdt').value.trim();
+  var email    = document.getElementById('nvEmail').value.trim();
   var gc       = document.getElementById('nvGc').value.trim();
   var bank     = document.getElementById('nvBank').value;
   var bankAcc  = document.getElementById('nvBankAcc').value.trim();
@@ -736,11 +798,11 @@ function saveNV() {
   else if (eid) { var existNv=employees.find(function(e){ return e.id===eid; }); finalPin=existNv?existNv.pin||'':''; }
   if (eid) {
     for (var i=0;i<employees.length;i++) {
-      if (employees[i].id===eid) { employees[i]={id:eid,ten:ten,dd:dd,loai:loai,luong:luong,cv:cv,sdt:sdt,gc:gc,bank:bank,bankAcc:bankAcc,bankName:bankName,pin:finalPin,customPresets:JSON.parse(JSON.stringify(_nvPresets))}; break; }
+      if (employees[i].id===eid) { employees[i]={id:eid,ten:ten,dd:dd,loai:loai,luong:luong,cv:cv,sdt:sdt,email:email,gc:gc,bank:bank,bankAcc:bankAcc,bankName:bankName,pin:finalPin,customPresets:JSON.parse(JSON.stringify(_nvPresets))}; break; }
     }
     toast('✅ Đã cập nhật nhân viên!');
   } else {
-    employees.push({id:uid(),ten:ten,dd:dd,loai:loai,luong:luong,cv:cv,sdt:sdt,gc:gc,bank:bank,bankAcc:bankAcc,bankName:bankName,pin:finalPin,customPresets:JSON.parse(JSON.stringify(_nvPresets))});
+    employees.push({id:uid(),ten:ten,dd:dd,loai:loai,luong:luong,cv:cv,sdt:sdt,email:email,gc:gc,bank:bank,bankAcc:bankAcc,bankName:bankName,pin:finalPin,customPresets:JSON.parse(JSON.stringify(_nvPresets))});
     toast('✅ Đã thêm nhân viên!');
   }
   saveAll(); clearNVForm(); renderNV(); renderPinStatusList();
@@ -751,6 +813,7 @@ function editNV(id) {
   document.getElementById('nvTen').value=nv.ten; document.getElementById('nvDd').value=nv.dd;
   document.getElementById('nvLoai').value=nv.loai; document.getElementById('nvLuong').value=nv.luong;
   document.getElementById('nvCv').value=nv.cv||''; document.getElementById('nvSdt').value=nv.sdt||'';
+  document.getElementById('nvEmail').value=nv.email||'';
   document.getElementById('nvGc').value=nv.gc||''; document.getElementById('nvId').value=id;
   document.getElementById('nvBank').value=nv.bank||'';
   document.getElementById('nvBankAcc').value=nv.bankAcc||'';
@@ -770,7 +833,7 @@ function deleteNV(id) {
   });
 }
 function clearNVForm() {
-  ['nvTen','nvCv','nvSdt','nvGc','nvId','nvBankAcc','nvBankName','nvPin','nvPinConfirm'].forEach(function(id){ document.getElementById(id).value=''; });
+  ['nvTen','nvCv','nvSdt','nvEmail','nvGc','nvId','nvBankAcc','nvBankName','nvPin','nvPinConfirm'].forEach(function(id){ document.getElementById(id).value=''; });
   document.getElementById('nvBank').value='';
   document.getElementById('nvLuong').value='';
   document.getElementById('nvDd').value='store'; document.getElementById('nvLoai').value='full';
@@ -824,7 +887,7 @@ document.getElementById('nvAddPresetBtn').addEventListener('click', function() {
 function renderNV() {
   document.getElementById('nvCnt').textContent = employees.length;
   var tbody = document.getElementById('nvBody');
-  if (!employees.length) { tbody.innerHTML='<tr class="erow"><td colspan="9">Chưa có nhân viên. Hãy thêm nhân viên đầu tiên!</td></tr>'; return; }
+  if (!employees.length) { tbody.innerHTML='<tr class="erow"><td colspan="10">Chưa có nhân viên. Hãy thêm nhân viên đầu tiên!</td></tr>'; return; }
   var html='';
   for (var i=0;i<employees.length;i++) {
     var nv=employees[i];
@@ -836,6 +899,7 @@ function renderNV() {
       '<td><strong>'+fmtM(nv.luong)+'</strong>/giờ</td>'+
       '<td>'+(nv.cv||'<span style="color:#ccc">—</span>')+'</td>'+
       '<td>'+(nv.sdt||'<span style="color:#ccc">—</span>')+'</td>'+
+      '<td>'+(nv.email?'<span style="font-size:11px;color:#1565c0">📧 '+nv.email+'</span>':'<span style="color:#ccc">—</span>')+'</td>'+
       '<td>'+(nv.bank&&nv.bankAcc?'<span style="font-size:12px"><strong>'+nv.bank+'</strong> '+nv.bankAcc+'<br><span style="color:var(--mut)">'+( nv.bankName||'')+'</span></span>':'<span style="color:#ccc">—</span>')+'</td>'+
       '<td><div class="acell">'+
         (nv.customPresets&&nv.customPresets.length?'<span style="font-size:10px;background:var(--prl);color:var(--prd);border-radius:10px;padding:2px 7px;font-weight:700">⏰ '+nv.customPresets.length+' ca riêng</span>':'')+
@@ -1390,6 +1454,318 @@ function downloadQR() {
   a.click();
 }
 
+// ── EXCEL EXPORT ─────────────────────────────────────────────────────
+document.getElementById('exportXlsxBtn').addEventListener('click', function() {
+  var res = document.getElementById('lResult');
+  if (!res || !res.innerHTML.trim()) { toast('Hãy tính lương trước!', 'err'); return; }
+  // Rebuild data from last calc
+  var from = document.getElementById('lFrom').value;
+  var to   = document.getElementById('lTo').value;
+  var fnv  = document.getElementById('lNv').value;
+  if (!from || !to) { toast('Chọn kỳ lương trước!', 'err'); return; }
+  var allDates = []; var cur = new Date(from); var end = new Date(to);
+  while (cur <= end) { allDates.push(toISO(new Date(cur))); cur.setDate(cur.getDate()+1); }
+  var nvList = fnv ? employees.filter(function(e){ return e.id===fnv; }) : employees.slice();
+  var fromD = new Date(from.replace(/-/g,'/')); var toD = new Date(to.replace(/-/g,'/'));
+  var period = fmtDay(fromD) + ' – ' + fmtDay(toD);
+
+  // Sheet 1: Tổng hợp
+  var wsData = [['BẢNG LƯƠNG — THE MUSE CANDLE'], ['Kỳ: ' + period], []];
+  wsData.push(['STT','Họ & Tên','Địa Điểm','Loại','Lương/Giờ','Ngày Công','Giờ Quy Đổi','Lương Cơ Bản','Chi Phí PS','TỔNG NHẬN','Ngân Hàng','Số TK','Chủ TK']);
+  var totDays=0,totHrs=0,totLcb=0,totCps=0,totAll=0;
+  var detailRows = [['CHI TIẾT TỪNG CA'],['Nhân Viên','Ngày','Thứ','Ca Làm','Số Giờ','Hệ Số','Giờ QĐ','Lương CB','Chi Phí PS','Ghi Chú']];
+  var stt=0;
+  for (var ni=0; ni<nvList.length; ni++) {
+    var nv=nvList[ni]; var tHrs=0,tDays=0,tLcb=0,tCps=0;
+    for (var di=0; di<allDates.length; di++) {
+      var dateStr=allDates[di]; var s=schedData[schedKey(nv.id,dateStr)];
+      if (!s||s.isOff||!s.bd||!s.kt) continue;
+      var dsParts=dateStr.split('-'); var dsDow=new Date(parseInt(dsParts[0]),parseInt(dsParts[1])-1,parseInt(dsParts[2])).getDay();
+      var hrs=calcHrs(s.bd,s.kt); var mult=getMultForShift(s.loai,dsDow);
+      var lcb=hrs*mult*nv.luong; var cps=totalCosts(s);
+      tHrs+=hrs*mult; tDays++; tLcb+=lcb; tCps+=cps;
+      detailRows.push([nv.ten, dateStr, VI_FULL[dsDow], s.bd+'–'+s.kt, hrs, mult, Math.round(hrs*mult*10)/10, Math.round(lcb), Math.round(cps), s.gc||'']);
+    }
+    if (tDays===0) continue; stt++;
+    totDays+=tDays; totHrs+=tHrs; totLcb+=tLcb; totCps+=tCps; totAll+=tLcb+tCps;
+    wsData.push([stt,nv.ten,nv.dd==='store'?'Store':'Xưởng',nv.loai==='full'?'Full-time':'Part-time',nv.luong,tDays,Math.round(tHrs*10)/10,Math.round(tLcb),Math.round(tCps),Math.round(tLcb+tCps),nv.bank||'',nv.bankAcc||'',nv.bankName||'']);
+  }
+  wsData.push([]); wsData.push(['','','','','TỔNG CỘNG',totDays,Math.round(totHrs*10)/10,Math.round(totLcb),Math.round(totCps),Math.round(totAll)]);
+
+  var wb = XLSX.utils.book_new();
+  var ws1 = XLSX.utils.aoa_to_sheet(wsData);
+  // Column widths
+  ws1['!cols'] = [{wch:5},{wch:20},{wch:10},{wch:12},{wch:12},{wch:10},{wch:12},{wch:16},{wch:12},{wch:16},{wch:14},{wch:18},{wch:22}];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Bảng Lương');
+  var ws2 = XLSX.utils.aoa_to_sheet(detailRows);
+  ws2['!cols'] = [{wch:20},{wch:12},{wch:10},{wch:12},{wch:8},{wch:8},{wch:8},{wch:14},{wch:12},{wch:20}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Chi Tiết Ca');
+  var fname = 'BangLuong_TheMuse_' + from.replace(/-/g,'') + '_' + to.replace(/-/g,'') + '.xlsx';
+  XLSX.writeFile(wb, fname);
+  toast('✅ Đã xuất file Excel!');
+});
+
+// ── AI SCHEDULING ────────────────────────────────────────────────────
+function initAiSchedLabel() {
+  var nextMon = getNextMonday();
+  var dates = getWeekDates(nextMon);
+  document.getElementById('aiNextWkLbl').textContent = fmtDay(nextMon) + ' – ' + fmtDay(dates[6]);
+}
+function getNextMonday() {
+  var m = new Date(getMonday(new Date())); m.setDate(m.getDate()+7); return m;
+}
+
+document.getElementById('genAiSchedBtn').addEventListener('click', runAiSchedule);
+
+function runAiSchedule() {
+  var nextMon = getNextMonday();
+  var dates = getWeekDates(nextMon);
+  var availData = JSON.parse(localStorage.getItem('mc_avail') || '{}');
+  var wkStart = toISO(nextMon);
+
+  // Collect submissions for next week
+  var submissions = {};
+  var keys = Object.keys(availData);
+  for (var k=0; k<keys.length; k++) {
+    var entry = availData[keys[k]];
+    if (entry.weekStart === wkStart) submissions[entry.nvId] = entry;
+  }
+
+  if (!employees.length) { toast('Chưa có nhân viên!', 'err'); return; }
+
+  // AI logic: assign shifts based on availability
+  // Priority: available (on) > flexible (maybe) > busy (off)
+  // Ensure each location has minimum coverage
+  var suggestions = {}; // { nvId|dateISO: { bd, kt, loai, source } }
+
+  for (var di=0; di<dates.length; di++) {
+    var d = dates[di]; var iso = toISO(d); var dow = d.getDay();
+    var isWend = dow===0||dow===6;
+
+    for (var ni=0; ni<employees.length; ni++) {
+      var nv = employees[ni];
+      var sub = submissions[nv.id];
+      var slot = sub ? sub.slots.find(function(s){ return s.date===iso; }) : null;
+      var status = slot ? slot.status : 'maybe';
+      var note = slot ? (slot.note||'') : '';
+
+      if (status === 'off') continue; // explicitly busy, skip
+
+      // Pick default shift based on location
+      var presets = PRESETS[nv.dd] || PRESETS.store;
+      // Choose "full day" or first preset as default
+      var fullDay = presets.find(function(p){ return calcHrs(p.bd,p.kt)>=7; }) || presets[0];
+      var loai = isWend ? 'cuoituan' : 'thuong';
+
+      // Parse preferred time from note
+      var noteBd='', noteKt='';
+      var timeMatch = note.match(/(\d{1,2})[h:]\s*(\d{0,2})\s*[–-]\s*(\d{1,2})[h:]\s*(\d{0,2})/);
+      if (timeMatch) {
+        noteBd = String(parseInt(timeMatch[1])).padStart(2,'0')+':'+(timeMatch[2]||'00');
+        noteKt = String(parseInt(timeMatch[3])).padStart(2,'0')+':'+(timeMatch[4]||'00');
+      }
+      var afterMatch = note.match(/sau\s*(\d{1,2})[h:]/i);
+      if (afterMatch && !noteBd) { noteBd = String(parseInt(afterMatch[1])).padStart(2,'0')+':00'; }
+
+      var finalBd = noteBd || fullDay.bd;
+      var finalKt = noteKt || fullDay.kt;
+
+      suggestions[schedKey(nv.id, iso)] = {
+        nvId: nv.id, nvTen: nv.ten, date: iso,
+        bd: finalBd, kt: finalKt, loai: loai,
+        status: status, note: note
+      };
+    }
+  }
+
+  renderAiResult(dates, suggestions, submissions);
+}
+
+function renderAiResult(dates, suggestions, submissions) {
+  var html = '<div style="overflow-x:auto"><div style="display:flex;gap:10px;min-width:700px;padding-bottom:8px">';
+
+  for (var di=0; di<dates.length; di++) {
+    var d = dates[di]; var iso = toISO(d); var dow = d.getDay(); var isWend = dow===0||dow===6;
+    html += '<div class="ai-day-col" style="'+(isWend?'background:#fffbf5':'')+'">';
+    html += '<div class="ai-date">'+ VI_FULL[dow] +'<br><strong>'+ fmtDay(d) +'</strong></div>';
+
+    var dayHasAny = false;
+    for (var ni=0; ni<employees.length; ni++) {
+      var nv = employees[ni];
+      var key = schedKey(nv.id, iso);
+      var sg = suggestions[key];
+      var sub = submissions[nv.id];
+      var slot = sub ? sub.slots.find(function(s){ return s.date===iso; }) : null;
+      var status = slot ? slot.status : 'nodata';
+
+      if (!sg) {
+        // Busy — show as unavailable
+        html += '<div class="ai-slot busy" title="'+nv.ten+' đã báo bận">'+
+          '<span>'+nv.ten+'</span><span>❌</span></div>';
+      } else {
+        var hrs = calcHrs(sg.bd, sg.kt);
+        var mult = getMultForShift(sg.loai, dow);
+        var pay = hrs*mult*nv.luong;
+        var statusIcon = status==='on'?'✅':status==='maybe'?'🤔':'📋';
+        html += '<div class="ai-slot '+(status==='on'?'assigned':'maybe')+'" '+
+          'title="'+nv.ten+': '+sg.bd+'–'+sg.kt+' · '+fmtM(pay)+'" '+
+          'onclick="applyAiSlot(\''+nv.id+'\',\''+iso+'\',\''+sg.bd+'\',\''+sg.kt+'\',\''+sg.loai+'\')">'+
+          '<span style="font-weight:700;font-size:10px">'+statusIcon+' '+nv.ten+'</span>'+
+          '<span style="font-size:9px">'+sg.bd+'–'+sg.kt+'</span>'+
+        '</div>';
+        dayHasAny = true;
+      }
+    }
+    if (!dayHasAny && !Object.keys(suggestions).some(function(k){ return k.endsWith('|'+iso); })) {
+      html += '<div style="font-size:11px;color:var(--mut);text-align:center;padding:8px">Không có NV</div>';
+    }
+    html += '</div>';
+  }
+
+  html += '</div></div>';
+  html += '<div class="ai-apply-row">';
+  html += '<span style="font-size:12px;color:var(--mut)">✅ Được · 🤔 Tùy · ❌ Bận &nbsp;|&nbsp; Click vào ca để áp dụng lịch cho NV đó</span>';
+  html += '<button class="btn bp bs" onclick="applyAllAiSuggestions(this._suggestions)">⚡ Áp Dụng Tất Cả</button>';
+  html += '<button class="btn bh bs" onclick="runAiSchedule()">🔄 Tạo lại</button>';
+  html += '</div>';
+
+  var cont = document.getElementById('aiSchedContent');
+  cont.innerHTML = html;
+  // Store suggestions on the button
+  var applyAllBtn = cont.querySelector('.ai-apply-row button');
+  if (applyAllBtn) applyAllBtn._suggestions = JSON.parse(JSON.stringify(suggestions));
+  toast('✅ AI đã tạo gợi ý lịch tuần tới!');
+}
+
+function applyAiSlot(nvId, dateISO, bd, kt, loai) {
+  schedData[schedKey(nvId, dateISO)] = {bd:bd, kt:kt, hrs:calcHrs(bd,kt), loai:loai, gc:'(AI gợi ý)', isOff:false, costs:[]};
+  saveAll(); toast('Đã áp dụng ca cho ' + (employees.find(function(e){ return e.id===nvId; })||{ten:''}).ten + '!');
+}
+
+function applyAllAiSuggestions(suggestions) {
+  if (!suggestions) return;
+  var count = 0;
+  var keys = Object.keys(suggestions);
+  for (var k=0; k<keys.length; k++) {
+    var sg = suggestions[keys[k]];
+    if (!schedData[keys[k]]) { // only apply where no existing schedule
+      schedData[keys[k]] = {bd:sg.bd, kt:sg.kt, hrs:calcHrs(sg.bd,sg.kt), loai:sg.loai, gc:'(AI gợi ý)', isOff:false, costs:[]};
+      count++;
+    }
+  }
+  saveAll();
+  toast('✅ Đã áp dụng ' + count + ' ca vào lịch tuần tới!');
+}
+
+// ── EMAILJS REMIND ────────────────────────────────────────────────────
+var _ejCfgKey = 'mc_emailjs';
+var _ejSentKey = 'mc_ej_sent'; // tracks what was sent today
+
+function loadEjConfig() {
+  var cfg = JSON.parse(localStorage.getItem(_ejCfgKey)||'{}');
+  document.getElementById('ejServiceId').value = cfg.serviceId||'';
+  document.getElementById('ejTemplateId').value = cfg.templateId||'';
+  document.getElementById('ejPublicKey').value = cfg.publicKey||'';
+  document.getElementById('ejEnabled').checked = !!cfg.enabled;
+  if (cfg.publicKey) { try { emailjs.init(cfg.publicKey); } catch(e){} }
+}
+function saveEjConfig() {
+  var cfg = {
+    serviceId: document.getElementById('ejServiceId').value.trim(),
+    templateId: document.getElementById('ejTemplateId').value.trim(),
+    publicKey: document.getElementById('ejPublicKey').value.trim(),
+    enabled: document.getElementById('ejEnabled').checked
+  };
+  if (!cfg.serviceId || !cfg.templateId || !cfg.publicKey) { toast('Vui lòng điền đủ Service ID, Template ID và Public Key!','err'); return; }
+  localStorage.setItem(_ejCfgKey, JSON.stringify(cfg));
+  try { emailjs.init(cfg.publicKey); } catch(e){}
+  document.getElementById('ejStatus').textContent = '✅ Đã lưu lúc '+new Date().toLocaleTimeString('vi-VN');
+  toast('✅ Đã lưu cài đặt EmailJS!');
+  if (cfg.enabled) scheduleEjReminder();
+}
+document.getElementById('ejSaveBtn').addEventListener('click', saveEjConfig);
+document.getElementById('ejSendNowBtn').addEventListener('click', function(){
+  var cfg = JSON.parse(localStorage.getItem(_ejCfgKey)||'{}');
+  if (!cfg.serviceId||!cfg.templateId||!cfg.publicKey) { toast('Chưa cấu hình EmailJS! Hãy điền và lưu cài đặt trước.','err'); return; }
+  // Reset sent log so it sends again
+  localStorage.removeItem(_ejSentKey);
+  runEjReminders();
+});
+
+function ejSendEmail(toEmail, toName, shiftDate, shiftTime, workplace) {
+  var cfg = JSON.parse(localStorage.getItem(_ejCfgKey)||'{}');
+  if (!cfg.serviceId||!cfg.templateId||!cfg.publicKey) return Promise.reject('no_config');
+  return emailjs.send(cfg.serviceId, cfg.templateId, {
+    to_email: toEmail,
+    to_name: toName,
+    shift_date: shiftDate,
+    shift_time: shiftTime,
+    workplace: workplace,
+    company: 'The Muse Candle'
+  });
+}
+
+document.getElementById('ejTestBtn').addEventListener('click', function() {
+  var cfg = JSON.parse(localStorage.getItem(_ejCfgKey)||'{}');
+  if (!cfg.serviceId||!cfg.templateId||!cfg.publicKey) { toast('Chưa lưu cấu hình EmailJS!','err'); return; }
+  // Find first employee with email
+  var testNv = employees.find(function(e){ return e.email&&e.email.length>0; });
+  if (!testNv) { toast('Chưa có nhân viên nào có email. Hãy thêm email cho nhân viên trước!','err'); return; }
+  var statusEl = document.getElementById('ejStatus');
+  statusEl.textContent = '⏳ Đang gửi...';
+  ejSendEmail(testNv.email, testNv.ten, 'Hôm nay', '09:00 – 17:00', testNv.dd==='store'?'Store (54 Lý Tự Trọng)':'Xưởng')
+    .then(function(){ statusEl.textContent='✅ Gửi thành công đến '+testNv.email; toast('✅ Email test đã gửi đến '+testNv.ten+'!'); })
+    .catch(function(e){ statusEl.textContent='❌ Lỗi: '+(e.text||String(e)); toast('❌ Gửi email thất bại!','err'); });
+});
+
+function runEjReminders() {
+  var cfg = JSON.parse(localStorage.getItem(_ejCfgKey)||'{}');
+  if (!cfg.enabled||!cfg.serviceId||!cfg.templateId||!cfg.publicKey) return;
+  var today = new Date(); var todayISO = toISO(today);
+  var tomorrow = new Date(today.getTime()+86400000); var tmrISO = toISO(tomorrow);
+  var sentLog = JSON.parse(localStorage.getItem(_ejSentKey)||'{}');
+  var dates = [
+    {iso: todayISO, label: fmtDay(today)+'/'+String(today.getMonth()+1).padStart(2,'0'), note:'(Hôm nay)'},
+    {iso: tmrISO,  label: fmtDay(tomorrow)+'/'+String(tomorrow.getMonth()+1).padStart(2,'0'), note:'(Ngày mai)'}
+  ];
+  var sent = 0;
+  for (var di=0; di<dates.length; di++) {
+    var dt = dates[di];
+    for (var ni=0; ni<employees.length; ni++) {
+      var nv = employees[ni];
+      if (!nv.email) continue;
+      var sk = schedKey(nv.id, dt.iso);
+      var s = schedData[sk];
+      if (!s||s.isOff||!s.bd||!s.kt) continue;
+      var sentId = nv.id+'|'+dt.iso;
+      if (sentLog[sentId] && sentLog[sentId]===todayISO) continue; // already sent today
+      var wp = nv.dd==='store'?'Store (54 Lý Tự Trọng, Vũng Tàu)':'Xưởng (The Muse)';
+      (function(nvId, email, ten, shiftDate, shiftTime, workplace, sid){
+        ejSendEmail(email, ten, shiftDate, shiftTime, workplace)
+          .then(function(){
+            var log=JSON.parse(localStorage.getItem(_ejSentKey)||'{}');
+            log[sid]=todayISO; localStorage.setItem(_ejSentKey,JSON.stringify(log));
+          }).catch(function(e){ console.warn('EmailJS error for '+ten+': ', e); });
+      })(nv.id, nv.email, nv.ten, dt.label+' '+dt.note, s.bd+' – '+s.kt, wp, sentId);
+      sent++;
+    }
+  }
+  if (sent > 0) toast('📧 Đang gửi email nhắc ca cho '+sent+' lượt nhân viên...');
+}
+
+function scheduleEjReminder() {
+  // Run immediately if enabled; then set interval to check every hour
+  var cfg = JSON.parse(localStorage.getItem(_ejCfgKey)||'{}');
+  if (!cfg.enabled) return;
+  // Check if it's around 8AM (7:45-8:15)
+  var now = new Date(); var h = now.getHours(); var m = now.getMinutes();
+  if (h===8 && m>=0 && m<=15) runEjReminders();
+  // Also run once on startup if never ran today
+  var lastRun = localStorage.getItem('mc_ej_lastrun')||'';
+  var todayISO = toISO(now);
+  if (lastRun !== todayISO) { localStorage.setItem('mc_ej_lastrun', todayISO); runEjReminders(); }
+}
+
 // ── AUTH ADMIN ────────────────────────────────────────────────────────
 function encPw(pw){ return pw?btoa(unescape(encodeURIComponent(pw))):''; }
 function decPw(enc){ try{ return enc?decodeURIComponent(escape(atob(enc))):''; }catch(e){ return ''; } }
@@ -1492,7 +1868,7 @@ function renderAvailSuggestions() {
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────
-function init() { checkAdminAuth(); renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); }
+function init() { checkAdminAuth(); renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); loadEjConfig(); scheduleEjReminder(); }
 init();
 </script>
 
