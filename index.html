@@ -1932,8 +1932,20 @@ function renderAvailSuggestions() {
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────
-// Chạy UI từ localStorage NGAY LẬP TỨC — không đợi Firebase
-checkAdminAuth(); renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); loadEjConfig(); scheduleEjReminder();
+// Defer UI init until DOM is fully ready (body elements are defined)
+function initApp() {
+  try {
+    checkAdminAuth(); renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); loadEjConfig(); scheduleEjReminder();
+  } catch(e) {
+    console.error('App init error:', e);
+    document.getElementById('fbStatus').textContent = '⚠️ Lỗi khởi động: ' + e.message;
+  }
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
 
 var _isFbFirstLoad = true;
 var _lastAiSuggestions = null;
