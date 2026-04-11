@@ -1954,9 +1954,12 @@ var supabase = null;
 function initSupabase() {
   if (!window.supabase) {
     // SDK not loaded yet, retry in 100ms
+    console.log('Waiting for Supabase SDK to load...');
     setTimeout(initSupabase, 100);
     return;
   }
+
+  console.log('Supabase SDK detected, initializing...');
 
   try {
     const { createClient } = window.supabase;
@@ -1964,9 +1967,11 @@ function initSupabase() {
       'https://jbidxvzubgvgbjqgawgp.supabase.co',
       'sb_publishable_cSm047uZZxHRRSmeWwaihw_WTw0O3em'
     );
+    console.log('Supabase client created:', supabase);
     document.getElementById('fbStatus').textContent = '🟡 Đang kết nối Supabase...';
     initSupabaseSync();
   } catch(e) {
+    console.error('Supabase init error:', e);
     document.getElementById('fbStatus').textContent = '⚠️ Supabase lỗi: ' + e.message;
     document.getElementById('fbStatus').style.color = '#c62828';
   }
@@ -1974,10 +1979,24 @@ function initSupabase() {
 
 // Move sync code to separate function
 function initSupabaseSync() {
-  if (!supabase) return;
+  if (!supabase) {
+    console.error('supabase is null in initSupabaseSync');
+    return;
+  }
+
+  console.log('Starting Supabase sync...');
+
+  // Timeout after 10 seconds
+  var syncTimeout = setTimeout(function() {
+    console.error('Supabase sync timeout after 10s');
+    document.getElementById('fbStatus').textContent='🔴 Timeout kết nối Supabase (>10s)';
+    document.getElementById('fbStatus').style.color='#c62828';
+  }, 10000);
 
   // Fetch initial data
   supabase.from('app_config').select('*').eq('id', 1).then(function(res) {
+    clearTimeout(syncTimeout);
+    console.log('Supabase fetch response:', res);
     if (res.data && res.data.length > 0) {
       var d = res.data[0];
       if(d.employees) { employees = d.employees; localStorage.setItem('mc_nv', JSON.stringify(employees)); }
@@ -1994,7 +2013,8 @@ function initSupabaseSync() {
     }
   }).catch(function(err){
     console.error("Supabase fetch error:", err);
-    document.getElementById('fbStatus').textContent='🔴 Lỗi kết nối';
+    console.error("Error details:", err.message, err.code);
+    document.getElementById('fbStatus').textContent='🔴 Lỗi fetch Supabase: ' + (err.message || 'unknown');
     document.getElementById('fbStatus').style.color='#c62828';
   });
 
