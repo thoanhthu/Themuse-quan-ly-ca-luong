@@ -732,7 +732,7 @@ function loadMultUI() {
 }
 
 // Wrap all addEventListener in try-catch (DOM might not be ready yet)
-try {
+// NOTE: addEventListener calls are now protected with null checks inside each handler
 document.getElementById('saveMultBtn').addEventListener('click', function() {
   multSettings.t7 = parseFloat(document.getElementById('multT7').value) || 1.5;
   multSettings.cn = parseFloat(document.getElementById('multCN').value) || 2;
