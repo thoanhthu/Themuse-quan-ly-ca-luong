@@ -1697,7 +1697,8 @@ function renderAiResult(dates, suggestions, submissions) {
 
 function applyAiSlot(nvId, dateISO, bd, kt, loai) {
   schedData[schedKey(nvId, dateISO)] = {bd:bd, kt:kt, hrs:calcHrs(bd,kt), loai:loai, gc:'(AI gợi ý)', isOff:false, costs:[]};
-  saveAll(); toast('Đã áp dụng ca cho ' + (employees.find(function(e){ return e.id===nvId; })||{ten:''}).ten + '!');
+  saveAll(); renderSched();
+  toast('Đã áp dụng ca cho ' + (employees.find(function(e){ return e.id===nvId; })||{ten:''}).ten + '!');
 }
 
 function applyAllAiSuggestions(suggestions) {
@@ -1711,7 +1712,7 @@ function applyAllAiSuggestions(suggestions) {
       count++;
     }
   }
-  saveAll();
+  saveAll(); renderSched();
   toast('✅ Đã áp dụng ' + count + ' ca vào lịch tuần tới!');
 }
 

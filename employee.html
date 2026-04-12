@@ -84,12 +84,14 @@ main{padding:14px;max-width:780px;margin:0 auto}
 .atog-btn.sel-maybe{background:var(--yel);color:#fff}
 .anote{padding:5px 8px;border:1.5px solid var(--bdr);border-radius:7px;font-size:12px;flex:1;min-width:100px;max-width:200px;font-family:inherit;color:var(--txt);background:var(--bg)}
 .anote:focus{outline:none;border-color:var(--pri)}
-/* Shift preset picker in availability form */
+/* Shift preset picker in availability form — multi-select */
 .shift-pick{display:flex;gap:5px;flex-wrap:wrap;width:100%;margin-top:5px;padding-top:5px;border-top:1px dashed var(--bdr);align-items:center}
 .shift-pick-lbl{font-size:10px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.4px;flex-shrink:0}
 .spbtn{padding:3px 9px;border:1.5px solid var(--bdr);border-radius:20px;background:var(--bg);font-size:11px;font-weight:600;cursor:pointer;color:var(--mut);transition:all .15s;white-space:nowrap}
 .spbtn:hover{border-color:var(--pri);color:var(--prd);background:var(--prl)}
 .spbtn.sel{background:var(--pri);color:#fff;border-color:var(--prd)}
+.spbtn.off{border-color:#ffcdd2;color:#c62828;background:#ffebee}
+.spbtn.off.sel{background:var(--red);color:#fff;border-color:#c62828}
 /* Notification badge on tab */
 .tab-badge{display:inline-block;background:var(--red);color:#fff;border-radius:10px;font-size:9px;font-weight:700;padding:1px 5px;line-height:1.5;margin-left:4px;vertical-align:middle;animation:badgePulse 1.5s infinite}
 @keyframes badgePulse{0%,100%{opacity:1}50%{opacity:.5}}
@@ -562,32 +564,27 @@ function renderAvailForm(){
   for(var i=0;i<dates.length;i++){
     var d=dates[i], iso=toISO(d), dow=d.getDay(), isWend=dow===0||dow===6;
     var slot=existing&&existing.slots?existing.slots.find(function(s){ return s.date===iso; }):null;
-    var status=slot?slot.status:'maybe';
+    var isOff=slot&&slot.status==='off';
     var note=slot&&slot.note?slot.note:'';
-    var prevPreset=slot&&slot.presetLabel?slot.presetLabel:'';
+    // Support both old (presetLabel) and new (presets array) format
+    var selPresets=slot&&slot.presets?slot.presets:(slot&&slot.presetLabel?[{label:slot.presetLabel,bd:slot.presetBd||'',kt:slot.presetKt||''}]:[]);
 
-    // Build shift preset picker
-    var pickHtml='';
-    if(presets.length){
-      pickHtml='<div class="shift-pick" data-date="'+iso+'"><span class="shift-pick-lbl">Ca muốn làm:</span>';
-      for(var j=0;j<presets.length;j++){
-        var p=presets[j];
-        var isSel=prevPreset===p.label;
-        pickHtml+='<button type="button" class="spbtn'+(isSel?' sel':'')+'" data-label="'+p.label+'" data-bd="'+p.bd+'" data-kt="'+p.kt+'">'+p.label+' <span style="opacity:.65;font-weight:400">'+p.bd+'–'+p.kt+'</span></button>';
-      }
-      pickHtml+='</div>';
+    // Build shift chips (multi-select) + Bận button
+    var pickHtml='<div class="shift-pick" data-date="'+iso+'">';
+    pickHtml+='<span class="shift-pick-lbl">Chọn ca:</span>';
+    for(var j=0;j<presets.length;j++){
+      var p=presets[j];
+      var isSel=!isOff&&selPresets.some(function(sp){ return sp.label===p.label; });
+      pickHtml+='<button type="button" class="spbtn'+(isSel?' sel':'')+'" data-label="'+p.label+'" data-bd="'+p.bd+'" data-kt="'+p.kt+'">'+p.label+' <span style="opacity:.65;font-weight:400">'+p.bd+'–'+p.kt+'</span></button>';
     }
+    pickHtml+='<button type="button" class="spbtn off'+(isOff?' sel':'')+'" data-label="__off__">❌ Bận cả ngày</button>';
+    pickHtml+='</div>';
 
     html+='<div class="arow">'+
       '<div class="alabel'+(isWend?' wnd':'')+'"><div class="aln">'+VI_DAYS[dow]+'</div><div class="ald">'+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'</div></div>'+
-      '<div class="actrl" style="flex-wrap:wrap">'+
-        '<div class="atog" data-date="'+iso+'">'+
-          '<button type="button" class="atog-btn'+(status==='on'?' sel-on':'')+'" data-val="on">✅ Được</button>'+
-          '<button type="button" class="atog-btn'+(status==='off'?' sel-off':'')+'" data-val="off">❌ Bận</button>'+
-          '<button type="button" class="atog-btn'+(status==='maybe'?' sel-maybe':'')+'" data-val="maybe">🤔 Tùy</button>'+
-        '</div>'+
-        '<input class="anote" type="text" data-date="'+iso+'" placeholder="Ghi chú..." value="'+note+'" />'+
+      '<div class="actrl" style="flex-wrap:wrap;padding-bottom:10px">'+
         pickHtml+
+        '<input class="anote" type="text" data-date="'+iso+'" placeholder="Ghi chú thêm..." value="'+note+'" style="width:100%;max-width:100%;margin-top:4px" />'+
       '</div>'+
     '</div>';
   }
@@ -599,25 +596,21 @@ function renderAvailForm(){
   newForm.id='availForm';
   newForm.innerHTML=html;
 
-  // Unified click handler for toggles + preset picks
+  // Click handler — multi-select shift chips + exclusive Bận
   newForm.addEventListener('click',function(e){
-    // Toggle on/off/maybe
-    var togBtn=e.target.closest('.atog-btn');
-    if(togBtn){
-      var val=togBtn.dataset.val;
-      var tog=togBtn.closest('.atog');
-      tog.querySelectorAll('.atog-btn').forEach(function(b){ b.className='atog-btn'; });
-      togBtn.className='atog-btn sel-'+val;
-      return;
-    }
-    // Shift preset pick
     var spBtn=e.target.closest('.spbtn');
-    if(spBtn){
-      var pick=spBtn.closest('.shift-pick');
-      var wasSelected=spBtn.classList.contains('sel');
+    if(!spBtn) return;
+    var pick=spBtn.closest('.shift-pick');
+    var isOffBtn=spBtn.dataset.label==='__off__';
+    if(isOffBtn){
+      // Bận: deselect all shifts, toggle Bận
+      var wasOff=spBtn.classList.contains('sel');
       pick.querySelectorAll('.spbtn').forEach(function(b){ b.classList.remove('sel'); });
-      if(!wasSelected) spBtn.classList.add('sel'); // toggle off if already selected
-      return;
+      if(!wasOff) spBtn.classList.add('sel');
+    } else {
+      // Shift chip: deselect Bận, toggle this shift (allow multiple)
+      pick.querySelector('.spbtn.off').classList.remove('sel');
+      spBtn.classList.toggle('sel');
     }
   });
 
@@ -641,10 +634,15 @@ function showPrevSubmit(sub){
   for(var i=0;i<sub.slots.length;i++){
     var sl=sub.slots[i]; var dp=sl.date.split('-');
     var dObj=new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
+    // Build preset chips (support both old presetLabel and new presets array)
+    var slPresets=sl.presets||(sl.presetLabel?[{label:sl.presetLabel,bd:sl.presetBd||'',kt:sl.presetKt||''}]:[]);
+    var presetsHtml=slPresets.map(function(sp){
+      return '<span style="background:var(--prl);color:var(--prd);border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:3px">⏰ '+sp.label+(sp.bd?' '+sp.bd+'–'+sp.kt:'')+'</span>';
+    }).join('');
     html+='<div style="background:var(--bg);border:1px solid var(--bdr);border-radius:8px;padding:6px 10px;font-size:12px">'+
       '<strong style="color:'+statusCols[sl.status]+'">'+VI_DAYS[dObj.getDay()]+' '+String(dObj.getDate()).padStart(2,'0')+'/'+String(dObj.getMonth()+1).padStart(2,'0')+'</strong> '+
       statusIcons[sl.status]+
-      (sl.presetLabel?' <span style="background:var(--prl);color:var(--prd);border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:3px">⏰ '+sl.presetLabel+' '+sl.presetBd+'–'+sl.presetKt+'</span>':'')+
+      presetsHtml+
       (sl.note?' <span style="color:var(--mut)">· '+sl.note+'</span>':'')+
     '</div>';
   }
@@ -657,18 +655,17 @@ document.getElementById('submitAvailBtn').addEventListener('click', function(){
   var wkStart=toISO(nextMon), dates=getWeekDates(nextMon), slots=[];
   for(var i=0;i<dates.length;i++){
     var iso=toISO(dates[i]);
-    var tog=document.querySelector('.atog[data-date="'+iso+'"]');
-    var activeBtn=tog?tog.querySelector('.atog-btn[class*="sel-"]'):null;
-    var status=activeBtn?(activeBtn.dataset.val):'maybe';
     var noteEl=document.querySelector('.anote[data-date="'+iso+'"]');
-    var selPreset=document.querySelector('.shift-pick[data-date="'+iso+'"] .spbtn.sel');
+    var pick=document.querySelector('.shift-pick[data-date="'+iso+'"]');
+    var offBtn=pick?pick.querySelector('.spbtn.off.sel'):null;
+    var selShiftBtns=pick?Array.prototype.slice.call(pick.querySelectorAll('.spbtn.sel:not(.off)')):[];
+    var selPresetsArr=selShiftBtns.map(function(b){ return {label:b.dataset.label,bd:b.dataset.bd,kt:b.dataset.kt}; });
+    var status=offBtn?'off':(selPresetsArr.length>0?'on':'maybe');
     slots.push({
       date:iso,
       status:status,
       note:noteEl?noteEl.value.trim():'',
-      presetLabel:selPreset?selPreset.dataset.label:'',
-      presetBd:selPreset?selPreset.dataset.bd:'',
-      presetKt:selPreset?selPreset.dataset.kt:''
+      presets:selPresetsArr
     });
   }
   reloadData();
