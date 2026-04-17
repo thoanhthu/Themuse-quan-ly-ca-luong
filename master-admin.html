@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Master Admin Dashboard — System Leads</title>
+<style>
+:root {
+  --pri: #c8956c; --acc: #7a5c44; --txt: #2d2018; --bg: #faf8f6; --sur: #fff; --bdr: #e8ddd5;
+}
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--txt); padding: 40px; }
+.container { max-width: 1000px; margin: 0 auto; }
+header { margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
+h1 { font-size: 24px; color: var(--acc); }
+.card { background: var(--sur); border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--bdr); padding: 24px; }
+table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+th { text-align: left; padding: 12px; background: #f5ede6; color: var(--acc); font-size: 13px; text-transform: uppercase; border-bottom: 2px solid var(--bdr); }
+td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+.logo-preview { height: 30px; width: 30px; object-fit: contain; background: #eee; border-radius: 4px; }
+.btn { padding: 8px 16px; background: var(--pri); color: #fff; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>👑 Master Admin Control</h1>
+    <a href="index.html" class="btn">← Quay lại Dashboard</a>
+  </header>
+
+  <div class="card">
+    <div style="font-size: 14px; color: #888; margin-bottom: 15px;">Danh sách tất cả các Shop đang sử dụng hệ thống (Leads)</div>
+    <table id="leadsTable">
+      <thead>
+        <tr>
+          <th>Logo</th>
+          <th>Tên Store / Shop</th>
+          <th>ID Chủ Shop (Owner)</th>
+          <th>Cập nhật cuối</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody id="leadsBody">
+        <tr><td colspan="5" style="text-align:center; padding:40px;">Đang tải dữ liệu...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2.39.1"></script>
+<script src="js/config.js"></script>
+<script>
+const { createClient } = window.supabase;
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function checkAccess() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session || session.user.email !== 'YOUR_ADMIN_EMAIL@gmail.com') {
+    alert('Truy cập bị từ chối. Chỉ dành cho Super Admin.');
+    window.location.href = 'index.html';
+    return;
+  }
+  loadLeads();
+}
+
+async function loadLeads() {
+  const { data, error } = await supabase
+    .from('app_config')
+    .select('owner_id, business_name, logo_url, updated_at')
+    .order('updated_at', { ascending: false });
+
+  if (error) {
+    console.error(error);
+    document.getElementById('leadsBody').innerHTML = `<tr><td colspan="5" style="color:red">Lỗi: ${error.message}</td></tr>`;
+    return;
+  }
+
+  const html = data.map(lead => `
+    <tr>
+      <td><img src="${lead.logo_url || 'logo.png'}" class="logo-preview" onerror="this.src='logo.png'"></td>
+      <td><strong>${lead.business_name || 'Chưa đặt tên'}</strong></td>
+      <td style="font-family: monospace; font-size:12px;">${lead.owner_id}</td>
+      <td>${new Date(lead.updated_at).toLocaleString('vi-VN')}</td>
+      <td><a href="employee.html?owner=${lead.owner_id}" target="_blank" style="color:var(--pri)">Xem Cổng NV ↗</a></td>
+    </tr>
+  `).join('');
+
+  document.getElementById('leadsBody').innerHTML = html || '<tr><td colspan="5" style="text-align:center">Chưa có ai đăng ký.</td></tr>';
+}
+
+checkAccess();
+</script>
+
+</body>
+</html>

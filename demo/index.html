@@ -198,22 +198,35 @@ tbody td{padding:10px 12px;vertical-align:middle}
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 <script async src="https://unpkg.com/@supabase/supabase-js@2.39.1"></script>
-<script src="js/config.js"></script>
 </head>
-<body>
+<body style="padding-top: 40px;">
+
+<!-- DEMO MODE BANNER -->
+<div style="position:fixed;top:0;left:0;right:0;background:#ff9800;color:#fff;text-align:center;padding:8px;font-weight:800;font-size:14px;z-index:10000;box-shadow:0 2px 8px rgba(0,0,0,0.2);letter-spacing:1px;font-family:sans-serif;">
+  ⚠️ CHẾ ĐỘ DEMO (DỮ LIÊU CHỈ LƯU TRÊN MÁY BẠN)
+</div>
 
 <header>
   <div style="display:flex;align-items:center;gap:10px">
-    <img id="bizLogo" src="logo.png" alt="Logo" style="height:42px; width:42px; object-fit:contain; border-radius:8px;" onerror="this.style.display='none'; document.getElementById('bizLogoFallback').style.display='block';" />
-    <div id="bizLogoFallback" style="display:none;font-size:32px">🕯️</div>
+    <svg width="42" height="42" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M36,4 C34.8,6.8 37.5,9 36.3,11.8 C35.1,14.6 37.8,16.8 36.6,19.6" stroke="#C9B89A" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="36" cy="21.8" r="1.9" fill="#C9B89A"/>
+      <path d="M25,14 C23.8,16.8 26.5,19 25.3,21.8 C24.1,24.6 26.8,26.8 25.6,29.6" stroke="#C9B89A" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="25" cy="31.8" r="1.9" fill="#C9B89A"/>
+      <path d="M14,24 C12.8,26.8 15.5,29 14.3,31.8 C13.1,34.6 15.8,36.8 14.6,39.6" stroke="#C9B89A" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="14" cy="41" r="1.6" fill="#C9B89A"/>
+    </svg>
     <div>
-      <h1 id="bizNameDisplay" style="margin:0; font-size:19px; letter-spacing:1px; text-transform:uppercase;">THE MUSE CANDLE</h1>
-      <small style="font-size:10px;opacity:.75;letter-spacing:.3px">Hệ Thống Quản Lý Nhân Sự</small>
+      <div style="display:flex;align-items:baseline;gap:1px;line-height:1.15">
+        <span style="font-family:Georgia,'Times New Roman',serif;font-style:italic;color:#C9B89A;font-size:17px">the</span>
+        <span style="font-family:'Segoe UI',Arial,sans-serif;font-weight:700;color:#fff;font-size:19px;letter-spacing:1.5px"> muse</span>
+      </div>
+      <small style="font-size:10px;opacity:.75;letter-spacing:.3px">Quản Lý Ca Làm & Lương · Vũng Tàu</small>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
     <a href="employee.html" target="_blank" style="font-size:12px;font-weight:600;background:rgba(255,255,255,.18);padding:6px 13px;border-radius:20px;color:#fff;text-decoration:none;white-space:nowrap">👤 Trang Nhân Viên ↗</a>
-    <button onclick="supabase.auth.signOut().then(()=>window.location.reload())" style="font-size:12px;font-weight:600;background:rgba(255,80,80,.25);border:1px solid rgba(255,255,255,.3);padding:6px 12px;border-radius:20px;color:#fff;cursor:pointer;white-space:nowrap">🚪 Đăng xuất</button>
+    <button id="adminLogoutBtn" onclick="adminLogout()" style="font-size:12px;font-weight:600;background:rgba(255,80,80,.25);border:1px solid rgba(255,255,255,.3);padding:6px 12px;border-radius:20px;color:#fff;cursor:pointer;white-space:nowrap;display:none">🚪 Đăng xuất</button>
   </div>
 </header>
 
@@ -228,7 +241,6 @@ tbody td{padding:10px 12px;vertical-align:middle}
   <button class="tab-btn" data-tab="nv">👤 Nhân Viên</button>
   <button class="tab-btn" data-tab="lich">📅 Lịch Tuần</button>
   <button class="tab-btn" data-tab="luong">💰 Tính Lương</button>
-  <button class="tab-btn" data-tab="settings">⚙️ Cài Đặt</button>
 </div>
 
 <main>
@@ -236,96 +248,46 @@ tbody td{padding:10px 12px;vertical-align:middle}
 <!-- ===================== DASHBOARD ===================== -->
 <div class="pane active" id="pane-db">
 
-    <!-- Statistics row ... -->
-    <div id="dbStats" class="db-row"></div>
-  </div>
-
-  <!-- ===================== SETTINGS ===================== -->
-  <div class="pane" id="pane-settings">
-    <!-- Cấu hình thương hiệu -->
-    <div class="card">
-      <div class="ch">
-        <h2>🏢 Cấu Hình Thương Hiệu</h2>
-        <span style="font-size:12px;color:var(--mut)">Tùy biến tên shop và logo hiển thị cho nhân viên</span>
-      </div>
-      <div class="cb">
-        <div class="g2">
-          <div class="fg">
-            <label>Tên Thương Hiệu</label>
-            <input type="text" id="bizNameInput" placeholder="VD: The Muse Candle" />
-          </div>
-          <div class="fg">
-            <label>Link Ảnh Logo (Ví dụ: https://.../logo.png)</label>
-            <input type="text" id="bizLogoInput" placeholder="Bỏ trống để dùng logo mặc định" />
-          </div>
-        </div>
-        <div class="rbtns" style="margin-top:14px">
-          <button class="btn bp" onclick="saveBranding()">💾 Lưu Cấu Hình Thương Hiệu</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Cài đặt hệ số lương -->
-    <div class="card">
-      <div class="ch">
-        <h2>⚙️ Hệ Số Lương & Phụ Cấp</h2>
-        <span style="font-size:12px;color:var(--mut)">Cài đặt tính lương mặc định cho toàn hệ thống</span>
-      </div>
-      <div class="cb">
-        <div class="g4">
-          <div class="fg">
-            <label>Thứ 7 (×1.5)</label>
-            <input type="number" id="multT7" value="1.5" step="0.1" />
-          </div>
-          <div class="fg">
-            <label>Chủ Nhật (×2.0)</label>
-            <input type="number" id="multCN" value="2.0" step="0.1" />
-          </div>
-          <div class="fg">
-            <label>Ngày Lễ (×2.0)</label>
-            <input type="number" id="multLe" value="2.0" step="0.1" />
-          </div>
-        </div>
-        <div class="rbtns" style="margin-top:14px">
-          <button class="btn bp" id="saveMultBtn">💾 Lưu Hệ Số</button>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Shop Info for Employees -->
-    <div class="card">
-      <div class="ch">
-        <h2>🔗 Link Cho Nhân Viên</h2>
-      </div>
-      <div class="cb">
-        <p style="font-size:13px; margin-bottom:10px;">Gửi link này cho nhân viên của bạn để họ đăng ký lịch và xem lương:</p>
-        <div style="display:flex; gap:10px; align-items:center;">
-          <input type="text" id="empLinkDisplay" readonly style="flex:1; padding:8px; border-radius:6px; border:1px solid var(--bdr); background:#f5f5f5;" />
-          <button class="btn bo" onclick="copyEmpLink()">📋 Sao chép</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Cấu hình thương hiệu -->
+  <!-- Cài đặt hệ số lương -->
   <div class="card">
     <div class="ch">
-      <h2>🏢 Cấu Hình Thương Hiệu</h2>
-      <span style="font-size:12px;color:var(--mut)">Tùy biến tên shop và logo hiển thị</span>
+      <h2>⚙️ Cài Đặt Hệ Số Lương</h2>
+      <span style="font-size:12px;color:var(--mut)">Thay đổi sẽ áp dụng khi tính lương từ đây trở đi</span>
     </div>
     <div class="cb">
-      <div class="g2">
+      <div class="g4">
         <div class="fg">
-          <label>Tên Thương Hiệu (Hiển thị ở Header & Nhân viên)</label>
-          <input type="text" id="bizNameInput" placeholder="VD: The Muse Candle" />
+          <label>Thứ 7 (mặc định ×1.5)</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:13px;color:var(--mut)">×</span>
+            <input type="number" id="multT7" value="1.5" min="1" max="5" step="0.5" style="flex:1" />
+          </div>
         </div>
         <div class="fg">
-          <label>Link Ảnh Logo (Vừa khít 42x42px)</label>
-          <input type="text" id="bizLogoInput" placeholder="https://link-anh-logo.png" />
+          <label>Chủ Nhật (mặc định ×2)</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:13px;color:var(--mut)">×</span>
+            <input type="number" id="multCN" value="2" min="1" max="5" step="0.5" style="flex:1" />
+          </div>
+        </div>
+        <div class="fg">
+          <label>Ngày Lễ / Tăng Ca (×2)</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:13px;color:var(--mut)">×</span>
+            <input type="number" id="multLe" value="2" min="1" max="5" step="0.5" style="flex:1" />
+          </div>
+        </div>
+        <div class="fg">
+          <label>Ngày Thường (cố định ×1)</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:13px;color:var(--mut)">×</span>
+            <input type="number" value="1" disabled style="flex:1;opacity:.5" />
+          </div>
         </div>
       </div>
-      <div class="rbtns" style="margin-top:14px">
-        <button class="btn bp" onclick="saveBranding()">💾 Lưu Cấu Hình Thương Hiệu</button>
+      <div class="rbtns" style="margin-top:10px">
+        <button class="btn bp bs" id="saveMultBtn">💾 Lưu Hệ Số</button>
+        <button class="btn bh bs" id="resetMultBtn">↺ Đặt lại mặc định</button>
       </div>
     </div>
   </div>
@@ -1914,9 +1876,9 @@ function setupAdminListeners() {
     var pwInput = document.getElementById('adminPwInput');
     var saveAdminPwBtn = document.getElementById('saveAdminPwBtn');
     if (!loginBtn || !pwInput || !saveAdminPwBtn) {
-      alert('Đăng ký thành công! Đang chuyển hướng...');
-      window.location.href = 'index.html';
-    } else {
+      console.warn('Admin login elements not found, retrying...');
+      return false;
+    }
 
     loginBtn.addEventListener('click',function(){
       var pw=pwInput.value;
@@ -2003,8 +1965,15 @@ function renderAvailSuggestions() {
 // ── INIT ──────────────────────────────────────────────────────────────
 // Defer UI init until DOM is fully ready (body elements are defined)
 function initApp() {
-  // UI initialization will happen inside initSupabaseSync after data is fetched
-  console.log('App UI waiting for data sync...');
+  try {
+    // Setup admin authentication listeners first
+    setupAdminListeners();
+    // Then initialize the app UI
+    checkAdminAuth(); renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); loadEjConfig(); scheduleEjReminder();
+  } catch(e) {
+    console.error('App init error:', e);
+    document.getElementById('fbStatus').textContent = '⚠️ Lỗi khởi động: ' + e.message;
+  }
 }
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initApp);
@@ -2017,148 +1986,63 @@ var _lastAiSuggestions = null;
 var supabase = null;
 
 // Wait for Supabase SDK to load
-// Check Auth Session
-async function checkSession() {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    window.location.href = 'auth.html';
-    return;
-  }
-  document.getElementById('fbStatus').textContent = '🟢 Đã đăng nhập: ' + session.user.email;
-  
-  // Show Master Admin link if user is the master
-  if (session.user.email === 'YOUR_ADMIN_EMAIL@gmail.com') {
-    const nav = document.querySelector('.tab-nav') || document.querySelector('.tabs');
-    if (nav) {
-      const masterLink = document.createElement('button');
-      masterLink.className = 'tab-btn';
-      masterLink.innerHTML = '👑 Quản Trị Hệ Thống';
-      masterLink.onclick = () => window.location.href = 'master-admin.html';
-      nav.appendChild(masterLink);
-    }
-  }
-  
-  initSupabaseSync();
-}
-
-// Wait for Supabase SDK to load
 function initSupabase() {
-  if (!window.supabase) {
-    console.log('Waiting for Supabase SDK to load...');
-    setTimeout(initSupabase, 100);
-    return;
-  }
-
-  try {
-    const { createClient } = window.supabase;
-    // Sử dụng URL và Key từ js/config.js
-    supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    checkSession();
-  } catch(e) {
-    console.error('Supabase init error:', e);
+  console.log('DEMO MODE: Supabase cloud sync disabled.');
+  document.getElementById('fbStatus').textContent = '🟠 Chế độ Demo (Không đồng bộ mây)';
+  document.getElementById('fbStatus').style.color = '#ff9800';
+  
+  // Load some dummy data if localStorage is empty to show how it works
+  if (!localStorage.getItem('mc_nv')) {
+    const dummyEmployees = [
+      {id: 'demo1', ten: 'Nhân Viên Demo 1', dd: 'store', loai: 'full', luong: 6000000, bank: 'VCB', bankAcc: '123456789', bankName: 'NGUYEN VAN A'},
+      {id: 'demo2', ten: 'Nhân Viên Demo 2', dd: 'factory', loai: 'part', luong: 25000, bank: 'TCB', bankAcc: '987654321', bankName: 'TRAN THI B'}
+    ];
+    localStorage.setItem('mc_nv', JSON.stringify(dummyEmployees));
+    employees = dummyEmployees;
+    renderNV();
   }
 }
 
 // Move sync code to separate function
-async function initSupabaseSync() {
-  if (!supabase) return;
-  
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
-
-  // Set Employee Link
-  const empUrl = window.location.href.split('index.html')[0] + 'employee.html?owner=' + user.id;
-  document.getElementById('empLinkDisplay').value = empUrl;
-
-  // Fetch data for the current owner
-  const { data, error } = await supabase.from('app_config').select('*').eq('owner_id', user.id);
-  
-  if (error) {
-    console.error("Supabase fetch error:", error);
+function initSupabaseSync() {
+  if (!supabase) {
+    console.error('supabase is null in initSupabaseSync');
     return;
   }
 
-  if (data && data.length > 0) {
-    var d = data[0];
-    
-    // AUTO-MIGRATION LOGIC: 
-    // Nếu trên máy chủ trống (mới tạo) nhưng dưới máy tính đang có dữ liệu (mc_nv không trống)
-    // thì ta ưu tiên ĐẨY dữ liệu từ máy tính lên máy chủ thay vì xóa nó đi.
-    const localNv = JSON.parse(localStorage.getItem('mc_nv') || '[]');
-    const isServerEmpty = (!d.employees || d.employees.length === 0) && (!d.sched_data || Object.keys(d.sched_data).length === 0);
-    
-    if (isServerEmpty && localNv.length > 0) {
-      console.log("Detecting legacy local data. Migrating to cloud...");
-      toast("Đang đồng bộ dữ liệu cũ của bạn lên tài khoản mới...", "ok");
-      await saveAllToSupabase(); // Đẩy local lên
+  console.log('Starting Supabase sync...');
+
+  // Timeout after 10 seconds
+  var syncTimeout = setTimeout(function() {
+    console.error('Supabase sync timeout after 10s');
+    document.getElementById('fbStatus').textContent='🔴 Timeout kết nối Supabase (>10s)';
+    document.getElementById('fbStatus').style.color='#c62828';
+  }, 10000);
+
+  // Fetch initial data
+  supabase.from('app_config').select('*').eq('id', 1).then(function(res) {
+    clearTimeout(syncTimeout);
+    console.log('Supabase fetch response:', res);
+    if (res.data && res.data.length > 0) {
+      var d = res.data[0];
+      if(d.employees) { employees = d.employees; localStorage.setItem('mc_nv', JSON.stringify(employees)); }
+      if(d.sched_data) { schedData = d.sched_data; localStorage.setItem('mc_sched', JSON.stringify(schedData)); }
+      if(d.mult_settings) { multSettings = d.mult_settings; localStorage.setItem('mc_mult', JSON.stringify(multSettings)); }
+      if(d.payslips) localStorage.setItem('mc_payslip', JSON.stringify(d.payslips));
+      if(d.avail) localStorage.setItem('mc_avail', JSON.stringify(d.avail));
+      if(d.admin_config) localStorage.setItem('mc_admin', JSON.stringify(d.admin_config));
+      if(d.emailjs_config) localStorage.setItem('mc_emailjs', JSON.stringify(d.emailjs_config));
+
+      renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); loadEjConfig();
       _sbFirstLoad = false;
-      return;
+      document.getElementById('fbStatus').textContent='🟢 Đã lấy dữ liệu hệ thống';
     }
-
-    // Nếu không thuộc trường hợp migration, ta đồng bộ từ máy chủ về máy tính như bình thường
-    if(d.employees) { employees = d.employees; localStorage.setItem('mc_nv', JSON.stringify(employees)); }
-    if(d.sched_data) { schedData = d.sched_data; localStorage.setItem('mc_sched', JSON.stringify(schedData)); }
-    if(d.mult_settings) { multSettings = d.mult_settings; localStorage.setItem('mc_mult', JSON.stringify(multSettings)); }
-    
-    // Apply Branding to Dashboard
-    if (d.business_name) {
-      document.getElementById('bizNameDisplay').innerText = d.business_name;
-      document.getElementById('bizNameInput').value = d.business_name;
-      document.title = d.business_name + ' — Quản Lý';
-    }
-    if (d.logo_url) {
-      document.getElementById('bizLogo').src = d.logo_url;
-      document.getElementById('bizLogoInput').value = d.logo_url;
-    }
-
-    renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); loadEjConfig();
-    _sbFirstLoad = false;
-  }
-}
-
-async function saveBranding() {
-  const name = document.getElementById('bizNameInput').value.trim();
-  const logo = document.getElementById('bizLogoInput').value.trim();
-  if(!name) { toast('Tên thương hiệu không được để trống','err'); return; }
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if(!user) return;
-
-  try {
-    const { error } = await supabase.from('app_config').upsert({
-      owner_id: user.id,
-      business_name: name,
-      logo_url: logo || 'logo.png',
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'owner_id' });
-    
-    if (error) throw error;
-    
-    toast('Đã lưu cấu hình thương hiệu!');
-    document.getElementById('bizNameDisplay').innerText = name;
-    if(logo) document.getElementById('bizLogo').src = logo;
-  } catch(e) {
-    toast('Lỗi khi lưu: '+e.message, 'err');
-  }
-}
-
-function copyEmpLink() {
-  const el = document.getElementById('empLinkDisplay');
-  el.select();
-  document.execCommand('copy');
-  toast('Đã sao chép link nhân viên!');
-}
-
-// Cập nhật Tab Logic để hỗ trợ Settings
-document.getElementById('tabBar').addEventListener('click', function(e){
-  var btn = e.target.closest('.tab-btn');
-  if(!btn) return;
-  var tab = btn.dataset.tab;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('pane-' + tab).classList.add('active');
-});
+  }).catch(function(err){
+    console.error("Supabase fetch error:", err);
+    console.error("Error details:", err.message, err.code);
+    document.getElementById('fbStatus').textContent='🔴 Lỗi fetch Supabase: ' + (err.message || 'unknown');
+    document.getElementById('fbStatus').style.color='#c62828';
+  });
 
   // Real-time updates using channel
   try {
@@ -2186,37 +2070,32 @@ document.getElementById('tabBar').addEventListener('click', function(e){
 }
 
 async function saveAllToSupabase() {
-  if (!supabase) return;
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
-
-  try {
-    await supabase.from('app_config').upsert({
-      owner_id: user.id,
-      employees: JSON.parse(localStorage.getItem('mc_nv')||'[]'),
-      sched_data: JSON.parse(localStorage.getItem('mc_sched')||'{}'),
-      mult_settings: JSON.parse(localStorage.getItem('mc_mult')||'{"t7":1.5,"cn":2,"le":2}'),
-      payslips: JSON.parse(localStorage.getItem('mc_payslip')||'{}'),
-      avail: JSON.parse(localStorage.getItem('mc_avail')||'{}'),
-      admin_config: JSON.parse(localStorage.getItem('mc_admin')||'{}'),
-      emailjs_config: JSON.parse(localStorage.getItem('mc_emailjs')||'{}'),
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'owner_id' });
-  } catch(e) {
-    console.error("Supabase save error:", e);
-  }
+  // Sync disabled in Demo Mode
+  return;
 }
 
 // Start Supabase initialization
 initSupabase();
 </script>
 
-<!-- ========= ADMIN LOGIN OVERLAY (DEPRECATED, REDIRECTING TO auth.html) ========= -->
-<script>
-  // Clean up old loginoverlay if still there
-  const overlay = document.getElementById('adminLoginOverlay');
-  if (overlay) overlay.style.display = 'none';
-</script>
+<!-- ========= ADMIN LOGIN OVERLAY ========= -->
+<div id="adminLoginOverlay" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,#2d2018cc,#7a5c44cc);backdrop-filter:blur(6px);z-index:3000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:20px;padding:36px 32px;width:90%;max-width:420px;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,.3)">
+    <img id="loginLogo" src="logo.png" alt="The Muse Candle" onerror="this.style.display='none';document.getElementById('loginLogoFallback').style.display='block'" style="height:60px;object-fit:contain;margin-bottom:16px" />
+    <div id="loginLogoFallback" style="display:none;font-size:36px;margin-bottom:16px">🕯️</div>
+    <h2 style="color:#7a5c44;font-size:20px;font-weight:800;margin-bottom:4px">Đăng Nhập Quản Trị</h2>
+    <p style="font-size:12px;color:#8a7060;margin-bottom:24px">The Muse Candle — Hệ thống quản lý ca làm & lương</p>
+    <div style="position:relative;margin-bottom:14px">
+      <input id="adminPwInput" type="password" placeholder="🔑 Nhập mật khẩu admin..." autocomplete="current-password"
+        style="width:100%;padding:12px 16px;border:2px solid #e8ddd5;border-radius:10px;font-size:15px;font-family:inherit;outline:none;transition:border-color .2s;background:#faf8f6" />
+    </div>
+    <button id="adminLoginBtn" style="width:100%;padding:12px;background:linear-gradient(135deg,#c8956c,#a97550);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.5px">🔓 ĐĂNG NHẬP</button>
+    <div id="adminLoginErr" style="margin-top:10px;font-size:12px;color:#e05252;display:none;font-weight:600">⚠️ Mật khẩu không đúng! Thử lại.</div>
+    <div style="margin-top:18px;padding-top:14px;border-top:1px dashed #e8ddd5;font-size:11px;color:#8a7060">
+      Lần đầu sử dụng? Để trống mật khẩu và nhấn Đăng Nhập.
+    </div>
+  </div>
+</div>
 
 <!-- QR Modal -->
 <div class="ovl" id="qrModal">

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Đăng Nhập Quản Trị — The Muse Candle</title>
+<style>
+:root {
+  --pri: #c8956c; --prd: #a97550; --prl: #f5ede6;
+  --acc: #7a5c44; --txt: #2d2018; --mut: #8a7060;
+  --bg: #faf8f6; --sur: #fff; --bdr: #e8ddd5;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--txt); display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+.auth-card { background: var(--sur); border-radius: 20px; padding: 40px 32px; width: 100%; max-width: 420px; box-shadow: 0 16px 48px rgba(0,0,0,.1); text-align: center; }
+.logo { height: 64px; margin-bottom: 24px; }
+h2 { color: var(--acc); font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+p { color: var(--mut); font-size: 14px; margin-bottom: 32px; }
+.form-group { text-align: left; margin-bottom: 16px; }
+label { display: block; font-size: 13px; font-weight: 700; color: var(--acc); margin-bottom: 6px; }
+input { width: 100%; padding: 12px 16px; border: 2px solid var(--bdr); border-radius: 10px; font-size: 15px; outline: none; transition: border-color .2s; }
+input:focus { border-color: var(--pri); }
+.btn { width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all .2s; margin-top: 8px; }
+.btn-pri { background: linear-gradient(135deg, var(--pri), var(--prd)); color: #fff; }
+.btn-pri:hover { opacity: 0.9; transform: translateY(-1px); }
+.toggle-auth { margin-top: 24px; font-size: 14px; color: var(--mut); }
+.toggle-auth a { color: var(--prd); font-weight: 700; text-decoration: none; }
+.toggle-auth a:hover { text-decoration: underline; }
+.error { color: #e05252; font-size: 13px; margin-bottom: 16px; display: none; background: #fff1f1; padding: 10px; border-radius: 8px; }
+</style>
+</head>
+<body>
+
+<div class="auth-card">
+  <img src="logo.png" alt="The Muse Candle" class="logo" />
+  <h2 id="authTitle">Đăng Nhập</h2>
+  <p id="authSub">Quản lý ca làm & lương cho doanh nghiệp của bạn</p>
+
+  <div id="authError" class="error"></div>
+
+  <div class="form-group">
+    <label>Email</label>
+    <input type="email" id="email" placeholder="shop@example.com" required />
+  </div>
+
+  <div class="form-group">
+    <label>Mật khẩu</label>
+    <input type="password" id="password" placeholder="••••••••" required />
+  </div>
+
+  <!-- Anti-spam Honeypot -->
+  <div style="display:none">
+    <input type="text" id="honeypot" tabindex="-1" autocomplete="off" />
+  </div>
+
+  <!-- Math Challenge -->
+  <div class="form-group" id="mathContainer" style="display:none">
+    <label id="mathLabel">Xác minh: 5 + 7 = ?</label>
+    <input type="number" id="mathAnswer" placeholder="Kết quả..." />
+  </div>
+
+  <button id="authBtn" class="btn btn-pri">ĐĂNG NHẬP</button>
+
+  <div class="toggle-auth" id="toggleAuth">
+    Chưa có tài khoản? <a href="#" onclick="switchAuth(event, true)">Đăng ký miễn phí</a>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2.39.1"></script>
+<script src="js/config.js"></script>
+<script>
+// const supabase = supabase.createClient... (Removed hardcoded config)
+
+let isSignUp = false;
+let mathResult = 0;
+
+function switchAuth(e, toSignUp) {
+  e.preventDefault();
+  isSignUp = toSignUp;
+  document.getElementById('authTitle').innerText = isSignUp ? 'Đăng Ký Tài Khoản' : 'Đăng Nhập';
+  document.getElementById('authSub').innerText = isSignUp ? 'Bắt đầu quản lý nhân sự chuyên nghiệp' : 'Quản lý ca làm & lương cho doanh nghiệp của bạn';
+  document.getElementById('authBtn').innerText = isSignUp ? 'ĐĂNG KÝ NGAY' : 'ĐĂNG NHẬP';
+  document.getElementById('toggleAuth').innerHTML = isSignUp 
+    ? 'Đã có tài khoản? <a href="#" onclick="switchAuth(event, false)">Đăng nhập</a>'
+    : 'Chưa có tài khoản? <a href="#" onclick="switchAuth(event, true)">Đăng ký miễn phí</a>';
+  document.getElementById('authError').style.display = 'none';
+  
+  // Show Math for Sign Up
+  const mathGrid = document.getElementById('mathContainer');
+  if (isSignUp) {
+    const a = Math.floor(Math.random() * 10) + 1;
+    const b = Math.floor(Math.random() * 10) + 1;
+    mathResult = a + b;
+    document.getElementById('mathLabel').innerText = `Xác minh: ${a} + ${b} = ?`;
+    mathGrid.style.display = 'block';
+  } else {
+    mathGrid.style.display = 'none';
+  }
+}
+
+document.getElementById('authBtn').onclick = async () => {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const honeypot = document.getElementById('honeypot').value;
+  const mathAnswer = document.getElementById('mathAnswer').value;
+  const errorEl = document.getElementById('authError');
+  
+  errorEl.style.display = 'none';
+
+  // Honeypot check
+  if (honeypot) return; // Silent discard
+  
+  if (!email || !password) {
+    errorEl.innerText = 'Vui lòng điền đầy đủ thông tin';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  if (isSignUp && parseInt(mathAnswer) !== mathResult) {
+    errorEl.innerText = 'Câu trả lời xác minh không chính xác';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('authBtn');
+  btn.disabled = true;
+  btn.innerText = 'Đang xử lý...';
+
+  try {
+    if (isSignUp) {
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) throw error;
+      
+      // Khởi tạo dòng cấu hình mặc định cho user mới
+      await supabase.from('app_config').insert({
+        owner_id: data.user.id,
+        business_name: 'Shop của ' + email.split('@')[0],
+        employees: [],
+        sched_data: {},
+        mult_settings: {"t7": 1.5, "cn": 2, "le": 2}
+      });
+      
+      // Gửi thông báo Email cho Super Admin (Nếu đã cấu hình EmailJS)
+      if (window.emailjs) {
+        emailjs.send("YOUR_SERVICE_ID", "YOUR_LEAD_TEMPLATE", {
+          new_user_email: email,
+          admin_email: "giacobetho@gmail.com",
+          site_name: "The Muse Candle SaaS"
+        }, "YOUR_PUBLIC_KEY").catch(e => console.log("Email notification failed:", e));
+      }
+      
+      alert('Đăng ký thành công! Đang chuyển hướng...');
+      window.location.href = 'index.html';
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      window.location.href = 'index.html';
+    }
+  } catch (err) {
+    errorEl.innerText = 'Lỗi: ' + err.message;
+    errorEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.innerText = isSignUp ? 'ĐĂNG KÝ NGAY' : 'ĐĂNG NHẬP';
+  }
+};
+
+// Check nếu đã login
+supabase.auth.getSession().then(({ data: { session } }) => {
+  if (session) window.location.href = 'index.html';
+});
+</script>
+
+</body>
+</html>
