@@ -236,77 +236,66 @@ tbody td{padding:10px 12px;vertical-align:middle}
 <!-- ===================== DASHBOARD ===================== -->
 <div class="pane active" id="pane-db">
 
-    <!-- Statistics row ... -->
-    <div id="dbStats" class="db-row"></div>
-  </div>
-
-  <!-- ===================== SETTINGS ===================== -->
-  <div class="pane" id="pane-settings">
-    <!-- Cấu hình thương hiệu -->
-    <div class="card">
-      <div class="ch">
-        <h2>🏢 Cấu Hình Thương Hiệu</h2>
-        <span style="font-size:12px;color:var(--mut)">Tùy biến tên shop và logo hiển thị cho nhân viên</span>
-      </div>
-      <div class="cb">
-        <div class="g2">
-          <div class="fg">
-            <label>Tên Thương Hiệu</label>
-            <input type="text" id="bizNameInput" placeholder="VD: The Muse Candle" />
-          </div>
-          <div class="fg">
-            <label>Link Ảnh Logo (Ví dụ: https://.../logo.png)</label>
-            <input type="text" id="bizLogoInput" placeholder="Bỏ trống để dùng logo mặc định" />
-          </div>
-        </div>
-        <div class="rbtns" style="margin-top:14px">
-          <button class="btn bp" onclick="saveBranding()">💾 Lưu Cấu Hình Thương Hiệu</button>
+  <!-- Lịch tháng quick-add -->
+  <div class="card">
+    <div class="ch">
+      <h2>📅 Lịch Tháng — Thêm Ca Nhanh</h2>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn bh bs" id="dbPrevBtn">◀</button>
+        <span class="mlbl" id="dbMonthLbl">—</span>
+        <button class="btn bh bs" id="dbNextBtn">▶</button>
+        <button class="btn bp bs" id="dbThisMonthBtn">Tháng này</button>
+        <div class="fg" style="margin:0;min-width:160px">
+          <select id="dbNvFilter" style="padding:6px 10px;border:1.5px solid var(--bdr);border-radius:7px;font-size:12px">
+            <option value="">-- Tất cả nhân viên --</option>
+          </select>
         </div>
       </div>
     </div>
-
-    <!-- Cài đặt hệ số lương -->
-    <div class="card">
-      <div class="ch">
-        <h2>⚙️ Hệ Số Lương & Phụ Cấp</h2>
-        <span style="font-size:12px;color:var(--mut)">Cài đặt tính lương mặc định cho toàn hệ thống</span>
-      </div>
-      <div class="cb">
-        <div class="g4">
-          <div class="fg">
-            <label>Thứ 7 (×1.5)</label>
-            <input type="number" id="multT7" value="1.5" step="0.1" />
-          </div>
-          <div class="fg">
-            <label>Chủ Nhật (×2.0)</label>
-            <input type="number" id="multCN" value="2.0" step="0.1" />
-          </div>
-          <div class="fg">
-            <label>Ngày Lễ (×2.0)</label>
-            <input type="number" id="multLe" value="2.0" step="0.1" />
-          </div>
-        </div>
-        <div class="rbtns" style="margin-top:14px">
-          <button class="btn bp" id="saveMultBtn">💾 Lưu Hệ Số</button>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Shop Info for Employees -->
-    <div class="card">
-      <div class="ch">
-        <h2>🔗 Link Cho Nhân Viên</h2>
-      </div>
-      <div class="cb">
-        <p style="font-size:13px; margin-bottom:10px;">Gửi link này cho nhân viên của bạn để họ đăng ký lịch và xem lương:</p>
-        <div style="display:flex; gap:10px; align-items:center;">
-          <input type="text" id="empLinkDisplay" readonly style="flex:1; padding:8px; border-radius:6px; border:1px solid var(--bdr); background:#f5f5f5;" />
-          <button class="btn bo" onclick="copyEmpLink()">📋 Sao chép</button>
-        </div>
+    <div class="cb" style="padding:12px">
+      <div id="dbMonthGrid" class="tw"></div>
+      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;font-size:11px">
+        <span style="color:var(--mut);font-weight:600">CHÚ THÍCH:</span>
+        <span style="background:#e3f2fd;color:#1565c0;padding:1px 6px;border-radius:4px;font-weight:600">■ Sáng</span>
+        <span style="background:#fff8e1;color:#9a6900;padding:1px 6px;border-radius:4px;font-weight:600">■ Chiều</span>
+        <span style="background:#f3e5f5;color:#6a1b9a;padding:1px 6px;border-radius:4px;font-weight:600">■ Tối</span>
+        <span style="background:#e8f5e9;color:#2e7d32;padding:1px 6px;border-radius:4px;font-weight:600">■ Cả ngày</span>
+        <span style="background:#ffebee;color:#c62828;padding:1px 6px;border-radius:4px;font-weight:600">■ OFF</span>
+        <span style="background:#fff3e0;color:#e65100;padding:1px 6px;border-radius:4px;font-weight:600">■ Tăng ca</span>
       </div>
     </div>
   </div>
 
+  <!-- Tổng quan chi phí -->
+  <div class="card">
+    <div class="ch"><h2>📊 Tổng Quan Chi Phí Nhân Sự Tháng Này</h2></div>
+    <div class="cb">
+      <div class="db-row" id="dbCards"></div>
+      <div class="tw"><table id="dbTable">
+        <thead><tr>
+          <th>Nhân Viên</th><th>Vị trí</th><th>Ngày công</th>
+          <th>Giờ làm</th><th>Lương cơ bản</th>
+          <th>Chi phí PS</th><th style="background:#fff3e0;color:#b45309">TỔNG NHẬN</th>
+        </tr></thead>
+        <tbody id="dbBody"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- Chi tiết chi phí phát sinh -->
+  <div class="card" id="dbCostCard" style="display:none">
+    <div class="ch"><h2>💼 Chi Tiết Chi Phí Phát Sinh</h2></div>
+    <div class="cb" style="padding:0">
+      <div class="tw"><table>
+        <thead><tr><th>Ngày</th><th>Nhân Viên</th><th>Loại</th><th>Số Tiền</th><th>Ghi Chú</th></tr></thead>
+        <tbody id="dbCostBody"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SETTINGS ===================== -->
+<div class="pane" id="pane-settings">
   <!-- Cấu hình thương hiệu -->
   <div class="card">
     <div class="ch">
@@ -326,6 +315,48 @@ tbody td{padding:10px 12px;vertical-align:middle}
       </div>
       <div class="rbtns" style="margin-top:14px">
         <button class="btn bp" onclick="saveBranding()">💾 Lưu Cấu Hình Thương Hiệu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cài đặt hệ số lương -->
+  <div class="card">
+    <div class="ch">
+      <h2>⚙️ Hệ Số Lương & Phụ Cấp</h2>
+      <span style="font-size:12px;color:var(--mut)">Cài đặt tính lương mặc định cho toàn hệ thống</span>
+    </div>
+    <div class="cb">
+      <div class="g4">
+        <div class="fg">
+          <label>Thứ 7 (×1.5)</label>
+          <input type="number" id="multT7" value="1.5" step="0.1" />
+        </div>
+        <div class="fg">
+          <label>Chủ Nhật (×2.0)</label>
+          <input type="number" id="multCN" value="2.0" step="0.1" />
+        </div>
+        <div class="fg">
+          <label>Ngày Lễ (×2.0)</label>
+          <input type="number" id="multLe" value="2.0" step="0.1" />
+        </div>
+      </div>
+      <div class="rbtns" style="margin-top:14px">
+        <button class="btn bp" id="saveMultBtn">💾 Lưu Hệ Số</button>
+        <button class="btn bh" id="resetMultBtn">↺ Đặt Lại Mặc Định</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Link cho nhân viên -->
+  <div class="card">
+    <div class="ch">
+      <h2>🔗 Link Cho Nhân Viên</h2>
+    </div>
+    <div class="cb">
+      <p style="font-size:13px; margin-bottom:10px;">Gửi link này cho nhân viên của bạn để họ đăng ký lịch và xem lương:</p>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <input type="text" id="empLinkDisplay" readonly style="flex:1; padding:8px; border-radius:6px; border:1px solid var(--bdr); background:#f5f5f5;" />
+        <button class="btn bo" onclick="copyEmpLink()">📋 Sao chép</button>
       </div>
     </div>
   </div>
@@ -382,63 +413,6 @@ tbody td{padding:10px 12px;vertical-align:middle}
         <button class="btn bg bs" id="ejSendNowBtn">🔔 Gửi Nhắc Ngay</button>
         <span id="ejStatus" style="font-size:12px;color:var(--mut);align-self:center"></span>
       </div>
-    </div>
-  </div>
-
-  <!-- Lịch tháng quick-add -->
-  <div class="card">
-    <div class="ch">
-      <h2>📅 Lịch Tháng — Thêm Ca Nhanh</h2>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <button class="btn bh bs" id="dbPrevBtn">◀</button>
-        <span class="mlbl" id="dbMonthLbl">—</span>
-        <button class="btn bh bs" id="dbNextBtn">▶</button>
-        <button class="btn bp bs" id="dbThisMonthBtn">Tháng này</button>
-        <div class="fg" style="margin:0;min-width:160px">
-          <select id="dbNvFilter" style="padding:6px 10px;border:1.5px solid var(--bdr);border-radius:7px;font-size:12px">
-            <option value="">-- Tất cả nhân viên --</option>
-          </select>
-        </div>
-      </div>
-    </div>
-    <div class="cb" style="padding:12px">
-      <div id="dbMonthGrid" class="tw"></div>
-      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;font-size:11px">
-        <span style="color:var(--mut);font-weight:600">CHÚ THÍCH:</span>
-        <span style="background:#e3f2fd;color:#1565c0;padding:1px 6px;border-radius:4px;font-weight:600">■ Sáng</span>
-        <span style="background:#fff8e1;color:#9a6900;padding:1px 6px;border-radius:4px;font-weight:600">■ Chiều</span>
-        <span style="background:#f3e5f5;color:#6a1b9a;padding:1px 6px;border-radius:4px;font-weight:600">■ Tối</span>
-        <span style="background:#e8f5e9;color:#2e7d32;padding:1px 6px;border-radius:4px;font-weight:600">■ Cả ngày</span>
-        <span style="background:#ffebee;color:#c62828;padding:1px 6px;border-radius:4px;font-weight:600">■ OFF</span>
-        <span style="background:#fff3e0;color:#e65100;padding:1px 6px;border-radius:4px;font-weight:600">■ Tăng ca</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Tổng quan chi phí -->
-  <div class="card">
-    <div class="ch"><h2>📊 Tổng Quan Chi Phí Nhân Sự Tháng Này</h2></div>
-    <div class="cb">
-      <div class="db-row" id="dbCards"></div>
-      <div class="tw"><table id="dbTable">
-        <thead><tr>
-          <th>Nhân Viên</th><th>Vị trí</th><th>Ngày công</th>
-          <th>Giờ làm</th><th>Lương cơ bản</th>
-          <th>Chi phí PS</th><th style="background:#fff3e0;color:#b45309">TỔNG NHẬN</th>
-        </tr></thead>
-        <tbody id="dbBody"></tbody>
-      </table></div>
-    </div>
-  </div>
-
-  <!-- Chi tiết chi phí phát sinh -->
-  <div class="card" id="dbCostCard" style="display:none">
-    <div class="ch"><h2>💼 Chi Tiết Chi Phí Phát Sinh</h2></div>
-    <div class="cb" style="padding:0">
-      <div class="tw"><table>
-        <thead><tr><th>Ngày</th><th>Nhân Viên</th><th>Loại</th><th>Số Tiền</th><th>Ghi Chú</th></tr></thead>
-        <tbody id="dbCostBody"></tbody>
-      </table></div>
     </div>
   </div>
 </div>
@@ -803,9 +777,10 @@ document.getElementById('tabBar').addEventListener('click', function(e) {
   document.querySelectorAll('.pane').forEach(function(p){ p.classList.remove('active'); });
   btn.classList.add('active');
   document.getElementById('pane-' + tab).classList.add('active');
-  if (tab === 'lich')  { renderSched(); renderAvailSuggestions(); initAiSchedLabel(); }
-  if (tab === 'luong') { populateLSel(); setThisMonth(); }
-  if (tab === 'db')    renderDashboard();
+  if (tab === 'lich')     { renderSched(); renderAvailSuggestions(); initAiSchedLabel(); }
+  if (tab === 'luong')    { populateLSel(); setThisMonth(); }
+  if (tab === 'db')       renderDashboard();
+  if (tab === 'settings') { loadMultUI(); loadEjConfig(); renderPinStatusList(); }
 });
 
 // ── MODAL HELPERS ────────────────────────────────────────────────────
@@ -1907,47 +1882,25 @@ function adminLogout(){
   showAdminLoginScreen();
 }
 
-// Setup admin login event listeners (moved to initApp for DOM readiness)
-function setupAdminListeners() {
-  try {
-    var loginBtn = document.getElementById('adminLoginBtn');
-    var pwInput = document.getElementById('adminPwInput');
-    var saveAdminPwBtn = document.getElementById('saveAdminPwBtn');
-    if (!loginBtn || !pwInput || !saveAdminPwBtn) {
-      alert('Đăng ký thành công! Đang chuyển hướng...');
-      window.location.href = 'index.html';
-    } else {
-
-    loginBtn.addEventListener('click',function(){
-      var pw=pwInput.value;
-      var cfg=JSON.parse(localStorage.getItem('mc_admin')||'{}');
-      var hasPw=cfg.pw&&cfg.pw.length>0;
-      if(!hasPw||encPw(pw)===cfg.pw){ enterAdmin(); }
-      else { document.getElementById('adminLoginErr').style.display='block'; pwInput.select(); }
-    });
-
-    pwInput.addEventListener('keydown',function(e){ if(e.key==='Enter') loginBtn.click(); });
-    pwInput.addEventListener('input',function(){ document.getElementById('adminLoginErr').style.display='none'; });
-
-    saveAdminPwBtn.addEventListener('click',function(){
-      var pw=document.getElementById('newAdminPw').value;
-      var confirm=document.getElementById('confirmAdminPw').value;
-      if(pw&&pw!==confirm){ toast('Mật khẩu xác nhận không khớp!','err'); return; }
-      if(pw&&pw.length<4){ toast('Mật khẩu phải có ít nhất 4 ký tự!','err'); return; }
-      var cfg=JSON.parse(localStorage.getItem('mc_admin')||'{}');
-      cfg.pw=encPw(pw);
-      localStorage.setItem('mc_admin',JSON.stringify(cfg));
+// Wire up admin password save button
+document.addEventListener('DOMContentLoaded', function() {
+  var saveAdminPwBtn = document.getElementById('saveAdminPwBtn');
+  if (saveAdminPwBtn) {
+    saveAdminPwBtn.addEventListener('click', function() {
+      var pw = document.getElementById('newAdminPw').value;
+      var conf = document.getElementById('confirmAdminPw').value;
+      if (pw && pw !== conf) { toast('Mật khẩu xác nhận không khớp!', 'err'); return; }
+      if (pw && pw.length < 4) { toast('Mật khẩu phải có ít nhất 4 ký tự!', 'err'); return; }
+      var cfg = JSON.parse(localStorage.getItem('mc_admin') || '{}');
+      cfg.pw = encPw(pw);
+      localStorage.setItem('mc_admin', JSON.stringify(cfg));
       if (typeof saveAllToSupabase === 'function') saveAllToSupabase();
-      document.getElementById('newAdminPw').value='';
-      document.getElementById('confirmAdminPw').value='';
-      toast(pw?'✅ Đã lưu mật khẩu admin!':'✅ Đã xóa mật khẩu admin (không yêu cầu đăng nhập).');
+      document.getElementById('newAdminPw').value = '';
+      document.getElementById('confirmAdminPw').value = '';
+      toast(pw ? '✅ Đã lưu mật khẩu admin!' : '✅ Đã xóa mật khẩu admin (không yêu cầu đăng nhập).');
     });
-    return true;
-  } catch(e) {
-    console.error('setupAdminListeners error:', e);
-    return false;
   }
-}
+});
 
 function renderPinStatusList(){
   var cont=document.getElementById('pinStatusList'); if(!cont) return;
@@ -2114,6 +2067,29 @@ async function initSupabaseSync() {
     renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); loadEjConfig();
     _sbFirstLoad = false;
   }
+
+  // Real-time updates
+  try {
+    const channel = supabase.channel('app_config_changes');
+    channel.on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'app_config'
+    }, function(payload) {
+      var d = payload.new;
+      if(d.employees) { employees = d.employees; localStorage.setItem('mc_nv', JSON.stringify(employees)); }
+      if(d.sched_data) { schedData = d.sched_data; localStorage.setItem('mc_sched', JSON.stringify(schedData)); }
+      if(d.mult_settings) { multSettings = d.mult_settings; localStorage.setItem('mc_mult', JSON.stringify(multSettings)); }
+      if(d.payslips) localStorage.setItem('mc_payslip', JSON.stringify(d.payslips));
+      if(d.avail) localStorage.setItem('mc_avail', JSON.stringify(d.avail));
+      if(d.admin_config) localStorage.setItem('mc_admin', JSON.stringify(d.admin_config));
+      if(d.emailjs_config) localStorage.setItem('mc_emailjs', JSON.stringify(d.emailjs_config));
+      renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); loadEjConfig();
+      if(!_sbFirstLoad) toast('Dữ liệu đã đồng bộ từ máy chủ!', 'ok');
+    }).subscribe();
+  } catch(e) {
+    console.error('Real-time subscription error:', e);
+  }
 }
 
 async function saveBranding() {
@@ -2149,41 +2125,6 @@ function copyEmpLink() {
   toast('Đã sao chép link nhân viên!');
 }
 
-// Cập nhật Tab Logic để hỗ trợ Settings
-document.getElementById('tabBar').addEventListener('click', function(e){
-  var btn = e.target.closest('.tab-btn');
-  if(!btn) return;
-  var tab = btn.dataset.tab;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('pane-' + tab).classList.add('active');
-});
-
-  // Real-time updates using channel
-  try {
-    const channel = supabase.channel('app_config_changes');
-    channel.on('postgres_changes', {
-      event: 'UPDATE',
-      schema: 'public',
-      table: 'app_config'
-    }, function(payload) {
-      var d = payload.new;
-      if(d.employees) { employees = d.employees; localStorage.setItem('mc_nv', JSON.stringify(employees)); }
-      if(d.sched_data) { schedData = d.sched_data; localStorage.setItem('mc_sched', JSON.stringify(schedData)); }
-      if(d.mult_settings) { multSettings = d.mult_settings; localStorage.setItem('mc_mult', JSON.stringify(multSettings)); }
-      if(d.payslips) localStorage.setItem('mc_payslip', JSON.stringify(d.payslips));
-      if(d.avail) localStorage.setItem('mc_avail', JSON.stringify(d.avail));
-      if(d.admin_config) localStorage.setItem('mc_admin', JSON.stringify(d.admin_config));
-      if(d.emailjs_config) localStorage.setItem('mc_emailjs', JSON.stringify(d.emailjs_config));
-
-      renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); loadEjConfig();
-      if(!_sbFirstLoad) toast("Dữ liệu đã đồng bộ từ máy chủ!", "ok");
-    }).subscribe();
-  } catch(e) {
-    console.error('Real-time subscription error:', e);
-  }
-}
 
 async function saveAllToSupabase() {
   if (!supabase) return;
