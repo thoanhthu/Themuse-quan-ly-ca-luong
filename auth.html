@@ -69,7 +69,9 @@ input:focus { border-color: var(--pri); }
 <script src="https://unpkg.com/@supabase/supabase-js@2.39.1"></script>
 <script src="js/config.js"></script>
 <script>
-// const supabase = supabase.createClient... (Removed hardcoded config)
+// Tạo Supabase client từ SDK đã load đồng bộ ở trên
+const { createClient } = window.supabase;
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let isSignUp = false;
 let mathResult = 0;
