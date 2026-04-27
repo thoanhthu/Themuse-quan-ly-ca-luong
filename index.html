@@ -363,15 +363,6 @@ tbody td{padding:10px 12px;vertical-align:middle}
         <div style="font-size:11px;color:var(--red);margin-top:8px;font-weight:600">⚠️ Nhân viên phải dùng đúng link này. Nếu vào link khác (không có ?owner=...) sẽ không thấy ca.</div>
       </div>
 
-      <!-- Sync status + force sync -->
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:10px 14px;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0">
-        <div style="flex:1">
-          <div style="font-size:12px;font-weight:700;color:#166534">☁️ Đồng bộ lên Cloud (nhân viên mới xem được ca)</div>
-          <div style="font-size:11px;color:#4b7c60;margin-top:2px" id="syncStatusText">Mỗi khi lưu ca, dữ liệu tự động đồng bộ lên Cloud.</div>
-        </div>
-        <button class="btn bg bs" id="forceSyncBtn" onclick="forceSyncNow()">🔄 Đồng bộ ngay</button>
-      </div>
-
       <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">
         <div style="text-align:center;flex-shrink:0">
           <img id="empQrImg" src="" alt="QR Code" style="width:170px;height:170px;border:2px solid var(--bdr);border-radius:12px;display:block;background:#f5f5f5"/>
@@ -391,6 +382,18 @@ tbody td{padding:10px 12px;vertical-align:middle}
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Đồng bộ dữ liệu -->
+  <div class="card">
+    <div class="ch">
+      <h2>☁️ Đồng Bộ Dữ Liệu</h2>
+    </div>
+    <div class="cb" style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:13px;color:var(--mut);flex:1">Đẩy toàn bộ nhân viên, lịch ca và lương lên Cloud để nhân viên xem.</span>
+      <button class="btn bg bs" onclick="forceSyncNow()">🔄 Đồng bộ ngay</button>
+    </div>
+    <div style="padding:0 16px 12px;font-size:11px;color:var(--grn);font-weight:600" id="syncStatusText"></div>
   </div>
 
   <!-- Đổi mật khẩu tài khoản -->
@@ -601,7 +604,13 @@ tbody td{padding:10px 12px;vertical-align:middle}
     <div class="cb" id="availSuggest"></div>
   </div>
   <div class="card">
-    <div class="ch"><h2>📅 Lịch Làm Việc Theo Tuần</h2></div>
+    <div class="ch">
+      <h2>📅 Lịch Làm Việc Theo Tuần</h2>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="sendSchedStatus" style="font-size:11px;color:var(--grn);font-weight:600"></span>
+        <button class="btn bg bs" id="sendSchedBtn" onclick="forceSyncNow()">📤 Gửi lịch cho nhân viên</button>
+      </div>
+    </div>
     <div class="cb">
       <div class="wnav">
         <button class="btn bh bs" id="prevWeekBtn">◀ Tuần trước</button>
@@ -2197,18 +2206,22 @@ async function saveBranding() {
 }
 
 async function forceSyncNow() {
-  var btn = document.getElementById('forceSyncBtn');
+  var btns = [document.getElementById('sendSchedBtn'), document.getElementById('forceSyncBtn')].filter(Boolean);
   var txt = document.getElementById('syncStatusText');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang đồng bộ...'; }
-  if (txt) txt.textContent = 'Đang đẩy toàn bộ dữ liệu lên Cloud...';
+  var schedStatus = document.getElementById('sendSchedStatus');
+  btns.forEach(function(b){ b.disabled = true; });
+  if (schedStatus) schedStatus.textContent = '⏳ Đang gửi...';
+  if (txt) txt.textContent = '';
   try {
     await saveAllToSupabase();
     var now = new Date().toLocaleTimeString('vi-VN');
-    if (txt) txt.textContent = '✅ Đồng bộ thành công lúc ' + now + ' — nhân viên có thể xem ca ngay.';
+    if (schedStatus) schedStatus.textContent = '✅ Đã gửi lúc ' + now;
+    if (txt) txt.textContent = '✅ Đồng bộ thành công lúc ' + now;
   } catch(e) {
-    if (txt) { txt.textContent = '❌ Lỗi: ' + e.message; txt.style.color = 'var(--red)'; }
+    if (schedStatus) { schedStatus.style.color = 'var(--red)'; schedStatus.textContent = '❌ ' + e.message; }
+    if (txt) { txt.style.color = 'var(--red)'; txt.textContent = '❌ Lỗi: ' + e.message; }
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '🔄 Đồng bộ ngay'; }
+    btns.forEach(function(b){ b.disabled = false; });
   }
 }
 
