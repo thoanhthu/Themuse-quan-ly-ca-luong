@@ -762,9 +762,28 @@ if(sessId){
 <script>
 var supabase = null;
 var _sbFirstRender = true;
+var _sbInitAttempts = 0;
+
+// Check ?owner= ngay lập tức, không cần đợi Supabase load
+(function checkOwnerEarly() {
+  var urlParams = new URLSearchParams(window.location.search);
+  var ownerId = urlParams.get('owner');
+  var stat = document.getElementById('empFbStatus');
+  if (!stat) return;
+  if (!ownerId) {
+    stat.textContent = '⚠️ Dùng link do admin cung cấp (có ?owner=...) để xem ca';
+    stat.style.color = 'var(--yel)';
+  }
+})();
 
 function initSupabaseEmp() {
+  _sbInitAttempts++;
   if (!window.supabase) {
+    if (_sbInitAttempts > 100) { // timeout sau 10 giây
+      var stat = document.getElementById('empFbStatus');
+      if (stat) { stat.textContent = '🔴 Không thể tải hệ thống. Kiểm tra kết nối mạng và tải lại trang.'; stat.style.color = 'var(--red)'; }
+      return;
+    }
     setTimeout(initSupabaseEmp, 100);
     return;
   }
@@ -775,6 +794,8 @@ function initSupabaseEmp() {
     initSupabaseSyncEmp();
   } catch(e) {
     console.error('Supabase init error:', e);
+    var stat = document.getElementById('empFbStatus');
+    if (stat) { stat.textContent = '🔴 Lỗi khởi tạo kết nối: ' + e.message; stat.style.color = 'var(--red)'; }
   }
 }
 
