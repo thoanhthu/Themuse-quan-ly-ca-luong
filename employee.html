@@ -839,24 +839,32 @@ function initSupabaseSyncEmp() {
 
 // Fetch initial data
 supabase.from('app_config').select('*').eq('owner_id', ownerId).then(function(res) {
-  if (res.data && res.data.length > 0) {
-    var d = res.data[0];
-    if(d.business_name) applyShopBranding(d.business_name, d.logo_url || '');
-    if(d.employees) { employees = d.employees; localStorage.setItem('mc_nv', JSON.stringify(employees)); }
-    if(d.sched_data) { schedData = d.sched_data; localStorage.setItem('mc_sched', JSON.stringify(schedData)); }
-    if(d.mult_settings) { multSettings = d.mult_settings; localStorage.setItem('mc_mult', JSON.stringify(multSettings)); }
-    if(d.payslips) { payslips = d.payslips; localStorage.setItem('mc_payslip', JSON.stringify(d.payslips)); }
-    if(d.avail) { availData = d.avail; localStorage.setItem('mc_avail', JSON.stringify(d.avail)); }
+  if (res.error) {
+    if(stat) { stat.textContent = '🔴 Lỗi kết nối: ' + res.error.message; stat.style.color = 'var(--red)'; }
+    return;
+  }
+  if (!res.data || res.data.length === 0) {
+    if(stat) { stat.textContent = '⚠️ Không tìm thấy dữ liệu shop. Link có thể sai — liên hệ admin.'; stat.style.color = 'var(--yel)'; }
+    return;
+  }
+  var d = res.data[0];
+  if(d.business_name) applyShopBranding(d.business_name, d.logo_url || '');
+  if(d.employees) { employees = d.employees; localStorage.setItem('mc_nv', JSON.stringify(employees)); }
+  if(d.sched_data) { schedData = d.sched_data; localStorage.setItem('mc_sched', JSON.stringify(schedData)); }
+  if(d.mult_settings) { multSettings = d.mult_settings; localStorage.setItem('mc_mult', JSON.stringify(multSettings)); }
+  if(d.payslips) { payslips = d.payslips; localStorage.setItem('mc_payslip', JSON.stringify(d.payslips)); }
+  if(d.avail) { availData = d.avail; localStorage.setItem('mc_avail', JSON.stringify(d.avail)); }
 
-    renderFbExt();
-    if(stat) stat.textContent = '🟢 Dữ liệu đồng bộ thành công';
-    _sbFirstRender = false;
-  }
-}).catch(function(e){
+  var schedCount = Object.keys(schedData).length;
+  var empCount = employees.length;
   if(stat) {
-    stat.textContent = '🔴 Mất mạng hoặc lỗi kết nối';
-    stat.style.color = 'var(--red)';
+    stat.textContent = '🟢 Kết nối thành công · ' + empCount + ' nhân viên · ' + schedCount + ' ca trong hệ thống';
+    stat.style.color = 'var(--grn)';
   }
+  renderFbExt();
+  _sbFirstRender = false;
+}).catch(function(e){
+  if(stat) { stat.textContent = '🔴 Mất mạng hoặc lỗi kết nối: ' + (e.message||''); stat.style.color = 'var(--red)'; }
 });
 
 // Real-time updates using channel
