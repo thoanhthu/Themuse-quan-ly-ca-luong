@@ -781,8 +781,18 @@ function initSupabaseEmp() {
 function initSupabaseSyncEmp() {
   if (!supabase) return;
 
+  var urlParams = new URLSearchParams(window.location.search);
+  var ownerId = urlParams.get('owner');
+
+  var stat = document.getElementById('empFbStatus');
+
+  if (!ownerId) {
+    if(stat) { stat.textContent = '⚠️ Truy cập bằng link do admin cung cấp (có ?owner=...)'; stat.style.color = 'var(--yel)'; }
+    return;
+  }
+
 // Fetch initial data
-supabase.from('app_config').select('*').eq('id', 1).then(function(res) {
+supabase.from('app_config').select('*').eq('owner_id', ownerId).then(function(res) {
   if (res.data && res.data.length > 0) {
     var d = res.data[0];
     if(d.employees) { employees = d.employees; localStorage.setItem('mc_nv', JSON.stringify(employees)); }
@@ -792,12 +802,10 @@ supabase.from('app_config').select('*').eq('id', 1).then(function(res) {
     if(d.avail) { availData = d.avail; localStorage.setItem('mc_avail', JSON.stringify(d.avail)); }
 
     renderFbExt();
-    var stat = document.getElementById('empFbStatus');
     if(stat) stat.textContent = '🟢 Dữ liệu đồng bộ thành công';
     _sbFirstRender = false;
   }
 }).catch(function(e){
-  var stat = document.getElementById('empFbStatus');
   if(stat) {
     stat.textContent = '🔴 Mất mạng hoặc lỗi kết nối';
     stat.style.color = 'var(--red)';
@@ -814,6 +822,7 @@ if (supabase) {
       table: 'app_config'
     }, function(payload) {
       var d = payload.new;
+      if(d.owner_id !== ownerId) return;
       if(d.employees) { employees = d.employees; localStorage.setItem('mc_nv', JSON.stringify(employees)); }
       if(d.sched_data) { schedData = d.sched_data; localStorage.setItem('mc_sched', JSON.stringify(schedData)); }
       if(d.mult_settings) { multSettings = d.mult_settings; localStorage.setItem('mc_mult', JSON.stringify(multSettings)); }

@@ -361,27 +361,39 @@ tbody td{padding:10px 12px;vertical-align:middle}
     </div>
   </div>
 
+  <!-- Đổi mật khẩu tài khoản -->
+  <div class="card">
+    <div class="ch">
+      <h2>🔑 Đổi Mật Khẩu Tài Khoản</h2>
+      <span style="font-size:11px;color:var(--mut)">Mật khẩu đăng nhập vào hệ thống</span>
+    </div>
+    <div class="cb">
+      <div class="g2" style="max-width:560px">
+        <div class="fg">
+          <label>Mật khẩu mới</label>
+          <input type="password" id="newAccountPw" placeholder="Tối thiểu 6 ký tự..." autocomplete="new-password"/>
+        </div>
+        <div class="fg">
+          <label>Xác nhận lại</label>
+          <input type="password" id="confirmAccountPw" placeholder="Nhập lại mật khẩu mới..." autocomplete="new-password"/>
+        </div>
+      </div>
+      <div class="rbtns" style="margin-top:12px">
+        <button class="btn bp" id="changeAccountPwBtn">💾 Đổi Mật Khẩu</button>
+        <span id="changeAccountPwStatus" style="font-size:12px;color:var(--mut);align-self:center"></span>
+      </div>
+    </div>
+  </div>
+
   <!-- Cài đặt mật khẩu -->
   <div class="card">
     <div class="ch">
-      <h2>🔐 Cài Đặt Mật Khẩu & Phân Quyền</h2>
-      <span style="font-size:11px;color:var(--mut)">Mật khẩu admin + PIN nhân viên</span>
+      <h2>🔐 Phân Quyền Nhân Viên</h2>
+      <span style="font-size:11px;color:var(--mut)">PIN nhân viên đăng nhập trang cá nhân</span>
     </div>
     <div class="cb">
-      <div class="g2">
-        <div>
-          <div style="font-size:12px;font-weight:700;color:var(--acc);margin-bottom:8px">🔑 Mật Khẩu Admin</div>
-          <div class="fg" style="margin-bottom:8px"><label>Mật khẩu mới</label><input type="password" id="newAdminPw" placeholder="Nhập mật khẩu mới..." autocomplete="new-password"/></div>
-          <div class="fg" style="margin-bottom:10px"><label>Xác nhận lại</label><input type="password" id="confirmAdminPw" placeholder="Nhập lại mật khẩu..." autocomplete="new-password"/></div>
-          <button class="btn bp bs" id="saveAdminPwBtn">💾 Lưu Mật Khẩu Admin</button>
-          <div style="margin-top:8px;font-size:11px;color:var(--mut)">Để trống = không yêu cầu mật khẩu khi đăng nhập</div>
-        </div>
-        <div>
-          <div style="font-size:12px;font-weight:700;color:var(--acc);margin-bottom:8px">📱 PIN Nhân Viên</div>
-          <div style="font-size:12px;color:var(--mut);margin-bottom:10px">Đặt PIN 4–6 số cho từng nhân viên tại tab <strong>Nhân Viên</strong>. Nhân viên dùng PIN này để đăng nhập trang cá nhân.</div>
-          <div id="pinStatusList" style="display:flex;flex-wrap:wrap;gap:6px"></div>
-        </div>
-      </div>
+      <div style="font-size:12px;color:var(--mut);margin-bottom:10px">Đặt PIN 4–6 số cho từng nhân viên tại tab <strong>Nhân Viên</strong>. Nhân viên dùng PIN này để đăng nhập trang cá nhân.</div>
+      <div id="pinStatusList" style="display:flex;flex-wrap:wrap;gap:6px"></div>
     </div>
   </div>
 
@@ -1884,20 +1896,33 @@ function adminLogout(){
 
 // Wire up admin password save button
 document.addEventListener('DOMContentLoaded', function() {
-  var saveAdminPwBtn = document.getElementById('saveAdminPwBtn');
-  if (saveAdminPwBtn) {
-    saveAdminPwBtn.addEventListener('click', function() {
-      var pw = document.getElementById('newAdminPw').value;
-      var conf = document.getElementById('confirmAdminPw').value;
-      if (pw && pw !== conf) { toast('Mật khẩu xác nhận không khớp!', 'err'); return; }
-      if (pw && pw.length < 4) { toast('Mật khẩu phải có ít nhất 4 ký tự!', 'err'); return; }
-      var cfg = JSON.parse(localStorage.getItem('mc_admin') || '{}');
-      cfg.pw = encPw(pw);
-      localStorage.setItem('mc_admin', JSON.stringify(cfg));
-      if (typeof saveAllToSupabase === 'function') saveAllToSupabase();
-      document.getElementById('newAdminPw').value = '';
-      document.getElementById('confirmAdminPw').value = '';
-      toast(pw ? '✅ Đã lưu mật khẩu admin!' : '✅ Đã xóa mật khẩu admin (không yêu cầu đăng nhập).');
+  var changeAccountPwBtn = document.getElementById('changeAccountPwBtn');
+  if (changeAccountPwBtn) {
+    changeAccountPwBtn.addEventListener('click', async function() {
+      var pw = document.getElementById('newAccountPw').value;
+      var conf = document.getElementById('confirmAccountPw').value;
+      var statusEl = document.getElementById('changeAccountPwStatus');
+      if (!pw) { toast('Vui lòng nhập mật khẩu mới', 'err'); return; }
+      if (pw.length < 6) { toast('Mật khẩu phải có ít nhất 6 ký tự!', 'err'); return; }
+      if (pw !== conf) { toast('Mật khẩu xác nhận không khớp!', 'err'); return; }
+      changeAccountPwBtn.disabled = true;
+      changeAccountPwBtn.textContent = 'Đang lưu...';
+      statusEl.textContent = '';
+      try {
+        const { error } = await supabase.auth.updateUser({ password: pw });
+        if (error) throw error;
+        document.getElementById('newAccountPw').value = '';
+        document.getElementById('confirmAccountPw').value = '';
+        statusEl.style.color = 'var(--grn)';
+        statusEl.textContent = 'Đã đổi mật khẩu thành công!';
+        toast('Mật khẩu tài khoản đã được cập nhật!', 'ok');
+      } catch(e) {
+        statusEl.style.color = 'var(--red)';
+        statusEl.textContent = 'Lỗi: ' + e.message;
+      } finally {
+        changeAccountPwBtn.disabled = false;
+        changeAccountPwBtn.textContent = 'Lưu Mật Khẩu';
+      }
     });
   }
 });
@@ -2031,10 +2056,29 @@ async function initSupabaseSync() {
     return;
   }
 
+  // Auto-create config row for new users (signup with email confirmation bypasses auth.html insert)
+  if (!data || data.length === 0) {
+    const email = (await supabase.auth.getUser()).data.user.email;
+    await supabase.from('app_config').insert({
+      owner_id: user.id,
+      business_name: 'Shop của ' + email.split('@')[0],
+      employees: [],
+      sched_data: {},
+      mult_settings: {"t7": 1.5, "cn": 2, "le": 2}
+    });
+    renderNV(); renderDashboard(); renderNvPresetList(); renderPinStatusList(); loadEjConfig();
+    _sbFirstLoad = false;
+    toast('Chào mừng bạn! Hãy bắt đầu thêm nhân viên.', 'ok');
+    // Set employee link
+    const empUrl = window.location.href.split('index.html')[0] + 'employee.html?owner=' + user.id;
+    document.getElementById('empLinkDisplay').value = empUrl;
+    return;
+  }
+
   if (data && data.length > 0) {
     var d = data[0];
-    
-    // AUTO-MIGRATION LOGIC: 
+
+    // AUTO-MIGRATION LOGIC:
     // Nếu trên máy chủ trống (mới tạo) nhưng dưới máy tính đang có dữ liệu (mc_nv không trống)
     // thì ta ưu tiên ĐẨY dữ liệu từ máy tính lên máy chủ thay vì xóa nó đi.
     const localNv = JSON.parse(localStorage.getItem('mc_nv') || '[]');

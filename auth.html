@@ -142,17 +142,17 @@ document.getElementById('authBtn').onclick = async () => {
         mult_settings: {"t7": 1.5, "cn": 2, "le": 2}
       });
       
-      // Gửi thông báo Email cho Super Admin (Nếu đã cấu hình EmailJS)
-      if (window.emailjs) {
-        emailjs.send("YOUR_SERVICE_ID", "YOUR_LEAD_TEMPLATE", {
-          new_user_email: email,
-          admin_email: "giacobetho@gmail.com",
-          site_name: "The Muse Candle SaaS"
-        }, "YOUR_PUBLIC_KEY").catch(e => console.log("Email notification failed:", e));
+      // Show success — if session exists redirect, otherwise prompt email confirmation
+      if (data.session) {
+        window.location.href = 'index.html';
+      } else {
+        errorEl.style.background = '#f0fff4';
+        errorEl.style.color = '#276749';
+        errorEl.innerText = '✅ Đăng ký thành công! Vui lòng kiểm tra email ' + email + ' và nhấp vào link xác nhận để đăng nhập.';
+        errorEl.style.display = 'block';
+        btn.disabled = false;
+        btn.innerText = 'ĐĂNG KÝ NGAY';
       }
-      
-      alert('Đăng ký thành công! Đang chuyển hướng...');
-      window.location.href = 'index.html';
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
