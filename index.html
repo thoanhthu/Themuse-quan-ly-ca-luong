@@ -350,13 +350,35 @@ tbody td{padding:10px 12px;vertical-align:middle}
   <!-- Link cho nhân viên -->
   <div class="card">
     <div class="ch">
-      <h2>🔗 Link Cho Nhân Viên</h2>
+      <h2>🔗 Cổng Nhân Viên — Link Riêng Của Shop</h2>
+      <span style="font-size:12px;color:var(--mut)">Mỗi shop có 1 link riêng — không trộn lẫn dữ liệu</span>
     </div>
     <div class="cb">
-      <p style="font-size:13px; margin-bottom:10px;">Gửi link này cho nhân viên của bạn để họ đăng ký lịch và xem lương:</p>
-      <div style="display:flex; gap:10px; align-items:center;">
-        <input type="text" id="empLinkDisplay" readonly style="flex:1; padding:8px; border-radius:6px; border:1px solid var(--bdr); background:#f5f5f5;" />
-        <button class="btn bo" onclick="copyEmpLink()">📋 Sao chép</button>
+      <div style="background:var(--prl);border-radius:10px;padding:14px 16px;margin-bottom:16px;border:1.5px solid var(--bdr)">
+        <div style="font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🔑 Link nhân viên của shop bạn (chứa mã định danh riêng)</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="empLinkDisplay" readonly style="flex:1;padding:9px 12px;border-radius:8px;border:1.5px solid var(--pri);background:#fff;font-size:12px;color:var(--acc);font-weight:600"/>
+          <button class="btn bp bs" onclick="copyEmpLink()">📋 Sao chép</button>
+        </div>
+        <div style="font-size:11px;color:var(--red);margin-top:8px;font-weight:600">⚠️ Nhân viên phải dùng đúng link này. Nếu vào link khác (không có ?owner=...) sẽ không thấy ca.</div>
+      </div>
+      <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">
+        <div style="text-align:center;flex-shrink:0">
+          <img id="empQrImg" src="" alt="QR Code" style="width:170px;height:170px;border:2px solid var(--bdr);border-radius:12px;display:block;background:#f5f5f5"/>
+          <div style="font-size:11px;color:var(--mut);margin-top:6px;font-weight:600">📷 Quét QR để vào cổng nhân viên</div>
+        </div>
+        <div style="flex:1;min-width:200px">
+          <div style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:10px">📱 Hướng dẫn chia sẻ cho nhân viên:</div>
+          <ol style="font-size:12px;color:var(--mut);padding-left:18px;line-height:2">
+            <li>Chụp QR code bên cạnh và gửi vào nhóm nhân viên</li>
+            <li>Hoặc sao chép link và gửi qua Zalo / Facebook</li>
+            <li>Nhân viên bookmark link trên điện thoại để dùng lại</li>
+            <li>Chọn tên → nhập PIN → xem ca & phiếu lương</li>
+          </ol>
+          <div style="margin-top:12px;padding:10px 12px;background:#fff3cd;border-radius:8px;font-size:11px;color:#856404;line-height:1.6">
+            <strong>Lưu ý quan trọng:</strong> Link này chứa mã định danh riêng của shop bạn. Nhân viên ở shop khác dùng link khác — dữ liệu hoàn toàn tách biệt.
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -2047,6 +2069,8 @@ async function initSupabaseSync() {
   // Set Employee Link
   const empUrl = window.location.href.split('index.html')[0] + 'employee.html?owner=' + user.id;
   document.getElementById('empLinkDisplay').value = empUrl;
+  const empQrImg = document.getElementById('empQrImg');
+  if(empQrImg) empQrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(empUrl);
 
   // Fetch data for the current owner
   const { data, error } = await supabase.from('app_config').select('*').eq('owner_id', user.id);
